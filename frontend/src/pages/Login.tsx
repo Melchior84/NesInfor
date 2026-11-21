@@ -49,7 +49,7 @@ export default function Login() {
       <form onSubmit={enviar} className="card w-full max-w-sm space-y-4 p-6">
         <div className="text-center">
           <div className="text-4xl">☕</div>
-          <h1 className="text-xl font-bold text-cafe-700">NesInfor</h1>
+          <h1 className="text-xl font-bold text-cafe-700">Cafezinho Infor</h1>
           <p className="text-sm text-stone-500">Pedidos coletivos Nespresso</p>
         </div>
         <div>

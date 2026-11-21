@@ -14,7 +14,7 @@ export default function Layout() {
     <div className="min-h-screen">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
-          <span className="mr-2 text-lg font-bold text-cafe-700">☕ NesInfor</span>
+          <span className="mr-2 text-lg font-bold text-cafe-700">☕ Cafezinho Infor</span>
           <nav className="flex flex-wrap gap-1">
             <NavLink to="/" end className={link}>
               Rodada ativa

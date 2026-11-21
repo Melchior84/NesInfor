@@ -1,4 +1,4 @@
-# NesInfor
+# Cafezinho Infor
 
 Sistema de pedidos coletivos de cápsulas Nespresso (caixas fechadas de 50 unidades por sabor).
 

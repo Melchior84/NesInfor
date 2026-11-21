@@ -35,7 +35,7 @@ export default function TrocarSenhaObrigatoria() {
           <h1 className="text-xl font-bold text-cafe-700">Cadastre uma nova senha</h1>
           <p className="mt-1 text-sm text-stone-500">
             Olá, <strong>{usuario?.nome}</strong>! Sua senha foi zerada por um administrador.
-            Defina uma nova senha para continuar usando o NesInfor.
+            Defina uma nova senha para continuar usando o Cafezinho Infor.
           </p>
         </div>
         <div>

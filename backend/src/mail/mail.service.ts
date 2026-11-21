@@ -73,7 +73,7 @@ export class MailService {
 
   constructor(config: ConfigService) {
     const host = config.get<string>('SMTP_HOST')?.trim();
-    this.from = config.get<string>('SMTP_FROM', 'NesInfor <no-reply@nesinfor.local>');
+    this.from = config.get<string>('SMTP_FROM', 'Cafezinho Infor <no-reply@cafezinhoinfor.com.br>');
     this.frontendUrl = config
       .get<string>('FRONTEND_URL', 'http://localhost:5173')
       .replace(/\/+$/, '');
@@ -128,12 +128,12 @@ export class MailService {
     const link = `${this.frontendUrl}/confirmar-email?token=${encodeURIComponent(token)}`;
     await this.enviar({
       para,
-      assunto: 'Confirme seu e-mail - NesInfor',
+      assunto: 'Confirme seu e-mail - Cafezinho Infor',
       linkDestaque: link,
-      texto: `Ola ${nome}, confirme seu e-mail para acessar o NesInfor: ${link} (valido por 24 horas).`,
+      texto: `Ola ${nome}, confirme seu e-mail para acessar o Cafezinho Infor: ${link} (valido por 24 horas).`,
       html: `
         <p>Olá, <strong>${escapeHtml(nome)}</strong>!</p>
-        <p>Para concluir seu cadastro no <strong>NesInfor</strong> e liberar o acesso, clique no link abaixo:</p>
+        <p>Para concluir seu cadastro no <strong>Cafezinho Infor</strong> e liberar o acesso, clique no link abaixo:</p>
         <p><a href="${link}">Confirmar meu e-mail</a></p>
         <p style="font-size:12px;color:#666">Este link é válido por 24 horas. Se você não criou esta conta, ignore este e-mail.</p>
       `,
@@ -144,12 +144,12 @@ export class MailService {
     const link = `${this.frontendUrl}/redefinir-senha?token=${encodeURIComponent(token)}`;
     await this.enviar({
       para,
-      assunto: 'Recuperação de senha - NesInfor',
+      assunto: 'Recuperação de senha - Cafezinho Infor',
       linkDestaque: link,
-      texto: `Ola ${nome}, use este link para redefinir sua senha no NesInfor: ${link} (valido por 1 hora).`,
+      texto: `Ola ${nome}, use este link para redefinir sua senha no Cafezinho Infor: ${link} (valido por 1 hora).`,
       html: `
         <p>Olá, <strong>${escapeHtml(nome)}</strong>!</p>
-        <p>Recebemos uma solicitação para redefinir sua senha no <strong>NesInfor</strong>.</p>
+        <p>Recebemos uma solicitação para redefinir sua senha no <strong>Cafezinho Infor</strong>.</p>
         <p><a href="${link}">Definir nova senha</a></p>
         <p style="font-size:12px;color:#666">Este link expira em 1 hora. Se não foi você, ignore este e-mail.</p>
       `,
@@ -164,12 +164,12 @@ export class MailService {
     const link = `${this.frontendUrl}/login`;
     await this.enviar({
       para,
-      assunto: 'Sua senha foi redefinida por um administrador - NesInfor',
+      assunto: 'Sua senha foi redefinida por um administrador - Cafezinho Infor',
       linkDestaque: link,
-      texto: `Ola ${nome}, um administrador zerou sua senha no NesInfor. Senha temporaria: ${senhaTemporaria}. No proximo login voce devera escolher uma nova senha. Acesse: ${link}`,
+      texto: `Ola ${nome}, um administrador zerou sua senha no Cafezinho Infor. Senha temporaria: ${senhaTemporaria}. No proximo login voce devera escolher uma nova senha. Acesse: ${link}`,
       html: `
         <p>Olá, <strong>${escapeHtml(nome)}</strong>!</p>
-        <p>Um administrador redefiniu sua senha no <strong>NesInfor</strong>.</p>
+        <p>Um administrador redefiniu sua senha no <strong>Cafezinho Infor</strong>.</p>
         <p>Sua senha temporária é: <code><strong>${escapeHtml(senhaTemporaria)}</strong></code></p>
         <p>No próximo acesso em <a href="${link}">${link}</a>, você será solicitado a cadastrar uma nova senha.</p>
       `,
@@ -271,7 +271,7 @@ export class MailService {
 
     await this.enviar({
       para: p.para,
-      assunto: `Pedido fechado: ${p.rodadaTitulo} - NesInfor`,
+      assunto: `Pedido fechado: ${p.rodadaTitulo} - Cafezinho Infor`,
       texto:
         `Ola ${p.nomeParticipante}!\n\n` +
         `A rodada "${p.rodadaTitulo}" foi fechada.\n\n` +
@@ -389,7 +389,7 @@ export class MailService {
 
     await this.enviar({
       para: p.para,
-      assunto: `[Organizador] Detalhamento da rodada fechada: ${p.rodadaTitulo} - NesInfor`,
+      assunto: `[Organizador] Detalhamento da rodada fechada: ${p.rodadaTitulo} - Cafezinho Infor`,
       texto:
         `Ola ${p.nomeOrganizador}!\n\n` +
         `A rodada "${p.rodadaTitulo}" foi fechada.\n\n` +

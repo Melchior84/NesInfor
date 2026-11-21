@@ -11,6 +11,7 @@ import {
   PoolConnection,
   ResultSetHeader,
 } from 'mysql2/promise';
+import { garantirSchema } from './init-schema';
 
 /** Executa SQL parametrizado (pool ou conexao de transacao). */
 export interface SqlExecutor {
@@ -38,14 +39,33 @@ export class DatabaseService
   private readonly logger = new Logger(DatabaseService.name);
   private readonly pool: Pool;
   private readonly executor: SqlExecutor;
+  private readonly dbName: string;
+  private readonly autoMigrate: boolean;
 
   constructor(config: ConfigService) {
+    // Aceita tanto DB_* quanto as variaveis nativas do MySQL no Railway (MYSQL*)
+    const host =
+      config.get<string>('DB_HOST') ??
+      config.get<string>('MYSQLHOST') ??
+      'localhost';
+    const port = Number(
+      config.get('DB_PORT') ?? config.get('MYSQLPORT') ?? 3306,
+    );
+    const user = config.get<string>('DB_USER') ?? config.get<string>('MYSQLUSER');
+    const password =
+      config.get<string>('DB_PASSWORD') ?? config.get<string>('MYSQLPASSWORD');
+    this.dbName =
+      config.get<string>('DB_NAME') ??
+      config.get<string>('MYSQLDATABASE') ??
+      'nespresso_coletivo';
+    this.autoMigrate = config.get<string>('AUTO_MIGRATE', 'true') !== 'false';
+
     this.pool = createPool({
-      host: config.get<string>('DB_HOST', 'localhost'),
-      port: Number(config.get('DB_PORT', 3306)),
-      user: config.get<string>('DB_USER'),
-      password: config.get<string>('DB_PASSWORD'),
-      database: config.get<string>('DB_NAME', 'nespresso_coletivo'),
+      host,
+      port,
+      user,
+      password,
+      database: this.dbName,
       waitForConnections: true,
       connectionLimit: Number(config.get('DB_POOL_SIZE', 10)),
       queueLimit: 0,
@@ -58,7 +78,10 @@ export class DatabaseService
 
   async onModuleInit(): Promise<void> {
     await this.pool.query('SELECT 1');
-    this.logger.log('Conexao com o MySQL estabelecida.');
+    this.logger.log(`Conexao com o MySQL estabelecida (${this.dbName}).`);
+    if (this.autoMigrate) {
+      await garantirSchema(this.pool, this.dbName, this.logger);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

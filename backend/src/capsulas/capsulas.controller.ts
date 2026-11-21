@@ -35,7 +35,8 @@ const MIME_EXT: Record<string, string> = {
 };
 
 const pastaCapsulas = () => {
-  const dir = join(process.cwd(), 'uploads', 'capsulas');
+  const base = process.env.UPLOADS_DIR || join(process.cwd(), 'uploads');
+  const dir = join(base, 'capsulas');
   mkdirSync(dir, { recursive: true });
   return dir;
 };
