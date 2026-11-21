@@ -68,17 +68,34 @@ export interface EmailFechamentoOrganizadorParams {
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter | null;
+  private readonly brevoApiKey: string | null;
   private readonly from: string;
+  private readonly senderName: string;
+  private readonly senderEmail: string;
   readonly frontendUrl: string;
 
   constructor(config: ConfigService) {
+    const brevoKey = config.get<string>('BREVO_API_KEY')?.trim() || null;
     const host = config.get<string>('SMTP_HOST')?.trim();
-    this.from = config.get<string>('SMTP_FROM', 'Cafezinho Infor <no-reply@cafezinhoinfor.com.br>');
+    this.from = config.get<string>(
+      'SMTP_FROM',
+      'Cafezinho Infor <no-reply@cafezinhoinfor.com.br>',
+    );
+    const parsedFrom = parseFrom(this.from);
+    this.senderName = parsedFrom.name;
+    this.senderEmail = parsedFrom.email;
     this.frontendUrl = config
       .get<string>('FRONTEND_URL', 'http://localhost:5173')
       .replace(/\/+$/, '');
 
-    if (host) {
+    this.brevoApiKey = brevoKey;
+
+    if (brevoKey) {
+      this.transporter = null;
+      this.logger.log(
+        `Brevo API HTTPS configurada (remetente: ${this.senderEmail}).`,
+      );
+    } else if (host) {
       const port = Number(config.get('SMTP_PORT', 587));
       const secure = String(config.get('SMTP_SECURE', 'false')) === 'true';
       const user = config.get<string>('SMTP_USER')?.trim();
@@ -93,12 +110,37 @@ export class MailService {
     } else {
       this.transporter = null;
       this.logger.warn(
-        'SMTP_HOST nao configurado: e-mails serao exibidos no terminal do backend.',
+        'Nenhum provedor de e-mail configurado (BREVO_API_KEY ou SMTP_HOST): e-mails serao exibidos no terminal do backend.',
       );
     }
   }
 
   async enviar(email: EnvioEmail): Promise<void> {
+    if (this.brevoApiKey) {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': this.brevoApiKey,
+          'content-type': 'application/json',
+          accept: 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: this.senderName, email: this.senderEmail },
+          to: [{ email: email.para }],
+          subject: email.assunto,
+          htmlContent: email.html,
+          textContent: email.texto,
+        }),
+      });
+      if (!res.ok) {
+        const detalhe = await res.text();
+        this.logger.error(`Erro Brevo API (${res.status}): ${detalhe}`);
+        throw new Error(`Falha ao enviar e-mail via Brevo (${res.status}).`);
+      }
+      this.logger.log(`E-mail enviado via Brevo API para ${email.para}.`);
+      return;
+    }
+
     if (!this.transporter) {
       this.logger.log(
         [
@@ -430,4 +472,10 @@ function escapeHtml(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function parseFrom(from: string): { name: string; email: string } {
+  const m = from.match(/^\s*"?([^"<]+?)"?\s*<([^>]+)>\s*$/);
+  if (m) return { name: m[1].trim(), email: m[2].trim() };
+  return { name: 'Cafezinho Infor', email: from.trim() };
 }
