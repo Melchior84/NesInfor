@@ -1,0 +1,100 @@
+@base = http://localhost:3000/api
+
+### Cadastro
+# @name register
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "nome": "Ana", "email": "ana@teste.com", "senha": "SenhaForte123" }
+
+### Login
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "ana@teste.com", "senha": "SenhaForte123" }
+
+###
+@token = {{login.response.body.token}}
+
+### Eu
+GET {{base}}/auth/me
+Authorization: Bearer {{token}}
+
+### Capsulas (ativas)
+GET {{base}}/capsulas
+Authorization: Bearer {{token}}
+
+### Criar capsula (ADMIN)
+POST {{base}}/capsulas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nome": "Caramello", "precoAtual": 10.5, "tamanhoCaixa": 50 }
+
+### Atualizar preco (ADMIN) - grava historico
+PUT {{base}}/capsulas/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "precoAtual": 11.9 }
+
+### Historico de precos (ADMIN)
+GET {{base}}/capsulas/1/historico-precos
+Authorization: Bearer {{token}}
+
+### Abrir rodada
+POST {{base}}/rodadas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "titulo": "Pedido de dezembro", "assumirOrganizacao": true }
+
+### Rodada ativa
+GET {{base}}/rodadas/ativa
+Authorization: Bearer {{token}}
+
+### Assumir organizacao
+POST {{base}}/rodadas/1/assumir
+Authorization: Bearer {{token}}
+
+### Meu pedido: definir quantidade (0 remove)
+PUT {{base}}/rodadas/1/meu-pedido/itens/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "quantidade": 25 }
+
+### Ver meu pedido
+GET {{base}}/rodadas/1/meu-pedido
+Authorization: Bearer {{token}}
+
+### Painel de caixas (todos veem quem pediu o que)
+GET {{base}}/rodadas/1/painel-caixas
+Authorization: Bearer {{token}}
+
+### Resumo de compra (so caixas fechadas)
+GET {{base}}/rodadas/1/resumo-compra
+Authorization: Bearer {{token}}
+
+### Participantes (organizador/ADMIN)
+GET {{base}}/rodadas/1/participantes
+Authorization: Bearer {{token}}
+
+### Marcar pagamento (organizador/ADMIN)
+PATCH {{base}}/rodadas/1/participantes/1/pagamento
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "PAGO" }
+
+### Mudar status (organizador/ADMIN)
+PATCH {{base}}/rodadas/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "FECHADO" }
+
+### Usuarios (ADMIN)
+GET {{base}}/usuarios
+Authorization: Bearer {{token}}

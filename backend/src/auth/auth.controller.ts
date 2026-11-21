@@ -1,0 +1,90 @@
+import { Body, Controller, Get, HttpCode, Post, Put } from '@nestjs/common';
+import { AllowPasswordResetPending } from '../common/decorators/allow-password-reset-pending.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
+import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
+import {
+  ConfirmarEmailDto,
+  DadosPagamentoDto,
+  EmailDto,
+  LoginDto,
+  RedefinirSenhaDto,
+  RegisterDto,
+  TrocarSenhaObrigatoriaDto,
+} from './auth.dto';
+import { AuthService } from './auth.service';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly auth: AuthService) {}
+
+  @Public()
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('confirmar-email')
+  confirmarEmail(@Body() dto: ConfirmarEmailDto) {
+    return this.auth.confirmarEmail(dto.token);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('reenviar-confirmacao')
+  reenviarConfirmacao(@Body() dto: EmailDto) {
+    return this.auth.reenviarConfirmacao(dto.email);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('login')
+  login(@Body() dto: LoginDto) {
+    return this.auth.login(dto);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('esqueci-senha')
+  esqueciSenha(@Body() dto: EmailDto) {
+    return this.auth.esqueciSenha(dto.email);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('redefinir-senha')
+  redefinirSenha(@Body() dto: RedefinirSenhaDto) {
+    return this.auth.redefinirSenha(dto.token, dto.novaSenha);
+  }
+
+  @AllowPasswordResetPending()
+  @HttpCode(200)
+  @Post('trocar-senha-obrigatoria')
+  trocarSenhaObrigatoria(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() dto: TrocarSenhaObrigatoriaDto,
+  ) {
+    return this.auth.trocarSenhaObrigatoria(usuario, dto.novaSenha);
+  }
+
+  @AllowPasswordResetPending()
+  @Get('me')
+  me(@CurrentUser() usuario: UsuarioAutenticado) {
+    return usuario;
+  }
+
+  @Get('dados-pagamento')
+  obterDadosPagamento(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.auth.obterDadosPagamento(usuario.id);
+  }
+
+  @Put('dados-pagamento')
+  salvarDadosPagamento(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() dto: DadosPagamentoDto,
+  ) {
+    return this.auth.salvarDadosPagamento(usuario.id, dto);
+  }
+}
