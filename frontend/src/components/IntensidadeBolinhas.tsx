@@ -33,14 +33,14 @@ export default function IntensidadeBolinhas({
   if (compacto && !editavel) {
     return (
       <div
-        className="space-y-0.5"
+        className="inline-flex w-fit flex-col gap-0.5"
         title={titulo}
         aria-label={`Intensidade ${valor} de ${MAX}`}
       >
         {exibirRotulo && (
-          <div className="flex items-center justify-between text-[11px] leading-tight">
+          <div className="flex items-center justify-between gap-2 text-[11px] leading-tight">
             <span className="font-medium text-stone-500">Intensidade</span>
-            <span className="font-semibold text-cafe-700">
+            <span className="font-semibold tabular-nums text-cafe-700">
               {valor}/{MAX}
             </span>
           </div>
