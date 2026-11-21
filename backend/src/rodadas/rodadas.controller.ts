@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 import { RodadaOrganizadorGuard } from '../common/guards/rodada-organizador.guard';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
 import { AlterarStatusDto, CriarRodadaDto } from './rodadas.dto';
@@ -30,6 +31,7 @@ export class RodadasController {
     return this.rodadas.ativa();
   }
 
+  @Roles('ADMIN')
   @Post()
   criar(@Body() dto: CriarRodadaDto, @CurrentUser() usuario: UsuarioAutenticado) {
     return this.rodadas.criar(dto, usuario);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { BadgeRodada } from '../components/Badges';
 import NovaRodadaForm from '../components/NovaRodadaForm';
 import { useToast } from '../components/Toast';
@@ -8,6 +9,7 @@ import { dataHora, rodadaAtiva } from '../lib/format';
 import type { Rodada } from '../types';
 
 export default function Historico() {
+  const { usuario } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [rodadas, setRodadas] = useState<Rodada[] | null>(null);
@@ -26,12 +28,13 @@ export default function Historico() {
   if (!rodadas) return <p className="text-stone-500">Carregando…</p>;
 
   const temAtiva = rodadas.some((r) => rodadaAtiva(r.status));
+  const podeAbrir = usuario?.perfil === 'ADMIN' && !temAtiva;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Histórico de rodadas</h1>
-        {!temAtiva && (
+        {podeAbrir && (
           <button
             className="btn-primary"
             onClick={() => setMostrarForm((v) => !v)}
@@ -41,7 +44,7 @@ export default function Historico() {
         )}
       </div>
 
-      {mostrarForm && !temAtiva && (
+      {mostrarForm && podeAbrir && (
         <NovaRodadaForm onCriada={() => navigate('/')} />
       )}
 
