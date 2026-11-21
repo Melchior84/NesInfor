@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { moeda } from '../lib/format';
 import type { Capsula } from '../types';
+import IntensidadeBolinhas from './IntensidadeBolinhas';
 
 interface Props {
   capsula: Capsula;
@@ -27,7 +28,7 @@ export default function CapsulaFlipCard({
   }
 
   return (
-    <div className="flip-scene h-72">
+    <div className="flip-scene h-[21rem]">
       <div className={`flip-card ${virado ? 'flipped' : ''}`}>
         {/* FRENTE: foto + nome + preço + controle de pedido */}
         <div
@@ -91,6 +92,11 @@ export default function CapsulaFlipCard({
                 <strong className="text-cafe-700">{moeda(capsula.precoAtual)}</strong> / un. · caixa com{' '}
                 {capsula.tamanhoCaixa}
               </p>
+              {capsula.intensidade !== null && (
+                <div className="mt-1">
+                  <IntensidadeBolinhas valor={capsula.intensidade} compacto />
+                </div>
+              )}
             </div>
 
             {quantidadeNoPedido === 0 ? (
@@ -159,6 +165,11 @@ export default function CapsulaFlipCard({
               <p className="text-xs text-cafe-700">
                 {moeda(capsula.precoAtual)} / un. · caixa com {capsula.tamanhoCaixa}
               </p>
+              {capsula.intensidade !== null && (
+                <div className="mt-1">
+                  <IntensidadeBolinhas valor={capsula.intensidade} compacto />
+                </div>
+              )}
             </div>
             <button
               type="button"

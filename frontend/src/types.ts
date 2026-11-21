@@ -14,6 +14,7 @@ export interface Usuario {
 export interface UsuarioAdmin extends Usuario {
   ativo: boolean;
   emailVerificado: boolean;
+  aprovado: boolean;
   criadoEm: string;
 }
 
@@ -22,6 +23,7 @@ export interface Capsula {
   nome: string;
   descricao: string | null;
   imagemUrl: string | null;
+  intensidade: number | null;
   precoAtual: number;
   tamanhoCaixa: number;
   ativo: boolean;

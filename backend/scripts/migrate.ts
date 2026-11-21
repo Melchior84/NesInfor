@@ -42,6 +42,24 @@ async function main() {
       console.log('Coluna usuarios.deve_trocar_senha adicionada.');
     }
 
+    if (!existentes.has('aprovado')) {
+      await conn.execute(
+        `ALTER TABLE usuarios
+           ADD COLUMN aprovado TINYINT(1) NOT NULL DEFAULT 1 AFTER email_verificado`,
+      );
+      console.log('Coluna usuarios.aprovado adicionada.');
+    }
+
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS configuracoes_sistema (
+        chave VARCHAR(80) NOT NULL,
+        valor TEXT NULL,
+        atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (chave)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log('Tabela configuracoes_sistema verificada/criada.');
+
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS tokens_autenticacao (
         id INT NOT NULL AUTO_INCREMENT,
@@ -83,6 +101,13 @@ async function main() {
         `ALTER TABLE capsulas ADD COLUMN imagem_url VARCHAR(500) NULL AFTER descricao`,
       );
       console.log('Coluna capsulas.imagem_url adicionada.');
+    }
+
+    if (!capExistentes.has('intensidade')) {
+      await conn.execute(
+        `ALTER TABLE capsulas ADD COLUMN intensidade TINYINT UNSIGNED NULL AFTER imagem_url`,
+      );
+      console.log('Coluna capsulas.intensidade adicionada.');
     }
 
     const pagamentoCols: [string, string][] = [

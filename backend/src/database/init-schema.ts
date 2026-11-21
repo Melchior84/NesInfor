@@ -21,6 +21,7 @@ export async function garantirSchema(
       perfil ENUM('ADMIN', 'USUARIO') NOT NULL DEFAULT 'USUARIO',
       ativo TINYINT(1) NOT NULL DEFAULT 1,
       email_verificado TINYINT(1) NOT NULL DEFAULT 1,
+      aprovado TINYINT(1) NOT NULL DEFAULT 1,
       deve_trocar_senha TINYINT(1) NOT NULL DEFAULT 0,
       pix_chave VARCHAR(180) NULL,
       banco VARCHAR(100) NULL,
@@ -39,6 +40,7 @@ export async function garantirSchema(
       nome VARCHAR(120) NOT NULL,
       descricao TEXT NULL,
       imagem_url VARCHAR(500) NULL,
+      intensidade TINYINT UNSIGNED NULL,
       preco_atual DECIMAL(10,2) NOT NULL,
       tamanho_caixa INT NOT NULL DEFAULT 50,
       ativo TINYINT(1) NOT NULL DEFAULT 1,
@@ -155,6 +157,48 @@ export async function garantirSchema(
       UNIQUE KEY uq_brinde_exclusao (brinde_id, usuario_id),
       CONSTRAINT fk_exclusao_brinde FOREIGN KEY (brinde_id) REFERENCES brindes_rodada (id) ON DELETE CASCADE,
       CONSTRAINT fk_exclusao_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  // Garante colunas incrementais em bancos ja existentes (HML/PROD no Railway)
+  const [capCols] = await pool.execute(
+    `SELECT COLUMN_NAME AS nome
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'capsulas'`,
+    [dbName],
+  );
+  const capExistentes = new Set(
+    (capCols as { nome: string }[]).map((c) => c.nome),
+  );
+  if (!capExistentes.has('intensidade')) {
+    await pool.query(
+      `ALTER TABLE capsulas ADD COLUMN intensidade TINYINT UNSIGNED NULL AFTER imagem_url`,
+    );
+    logger.log(`Coluna capsulas.intensidade adicionada (banco ${dbName}).`);
+  }
+
+  const [usrCols] = await pool.execute(
+    `SELECT COLUMN_NAME AS nome
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'usuarios'`,
+    [dbName],
+  );
+  const usrExistentes = new Set(
+    (usrCols as { nome: string }[]).map((c) => c.nome),
+  );
+  if (!usrExistentes.has('aprovado')) {
+    await pool.query(
+      `ALTER TABLE usuarios ADD COLUMN aprovado TINYINT(1) NOT NULL DEFAULT 1 AFTER email_verificado`,
+    );
+    logger.log(`Coluna usuarios.aprovado adicionada (banco ${dbName}).`);
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS configuracoes_sistema (
+      chave VARCHAR(80) NOT NULL,
+      valor TEXT NULL,
+      atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (chave)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 

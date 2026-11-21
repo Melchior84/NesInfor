@@ -8,7 +8,7 @@ import { DatabaseService, isDuplicateEntry } from '../database/database.service'
 import { AtualizarCapsulaDto, CriarCapsulaDto } from './capsulas.dto';
 
 const SELECT_CAPSULA = `
-  SELECT id, nome, descricao, imagem_url AS imagemUrl,
+  SELECT id, nome, descricao, imagem_url AS imagemUrl, intensidade,
          preco_atual AS precoAtual, tamanho_caixa AS tamanhoCaixa,
          (ativo = 1) AS ativo, criado_em AS criadoEm, atualizado_em AS atualizadoEm
     FROM capsulas`;
@@ -44,12 +44,13 @@ export class CapsulasService {
     try {
       const id = await this.db.transaction(async (tx) => {
         const res = await tx.execute(
-          `INSERT INTO capsulas (nome, descricao, imagem_url, preco_atual, tamanho_caixa, ativo, criado_em, atualizado_em)
-           VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())`,
+          `INSERT INTO capsulas (nome, descricao, imagem_url, intensidade, preco_atual, tamanho_caixa, ativo, criado_em, atualizado_em)
+           VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), NOW())`,
           [
             dto.nome.trim(),
             limparTexto(dto.descricao),
             limparTexto(dto.imagemUrl),
+            dto.intensidade ?? null,
             dto.precoAtual,
             dto.tamanhoCaixa ?? 50,
           ],
@@ -86,10 +87,11 @@ export class CapsulasService {
           nome: string;
           descricao: string | null;
           imagem_url: string | null;
+          intensidade: number | null;
           preco_atual: number;
           tamanho_caixa: number;
         }>(
-          'SELECT nome, descricao, imagem_url, preco_atual, tamanho_caixa FROM capsulas WHERE id = ? FOR UPDATE',
+          'SELECT nome, descricao, imagem_url, intensidade, preco_atual, tamanho_caixa FROM capsulas WHERE id = ? FOR UPDATE',
           [id],
         );
         if (!atual) throw new NotFoundException('Capsula nao encontrada.');
@@ -99,16 +101,19 @@ export class CapsulasService {
           dto.descricao !== undefined ? limparTexto(dto.descricao) : atual.descricao;
         const novaImagem =
           dto.imagemUrl !== undefined ? limparTexto(dto.imagemUrl) : atual.imagem_url;
+        const novaIntensidade =
+          dto.intensidade !== undefined ? dto.intensidade : atual.intensidade;
 
         await tx.execute(
           `UPDATE capsulas
-              SET nome = ?, descricao = ?, imagem_url = ?, preco_atual = ?,
+              SET nome = ?, descricao = ?, imagem_url = ?, intensidade = ?, preco_atual = ?,
                   tamanho_caixa = ?, atualizado_em = NOW()
             WHERE id = ?`,
           [
             dto.nome?.trim() ?? atual.nome,
             novaDescricao,
             novaImagem,
+            novaIntensidade,
             novoPreco,
             dto.tamanhoCaixa ?? atual.tamanho_caixa,
             id,

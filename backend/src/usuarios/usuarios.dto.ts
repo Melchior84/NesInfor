@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsOptional } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class AtualizarUsuarioDto {
   @IsOptional()
@@ -8,4 +8,10 @@ export class AtualizarUsuarioDto {
   @IsOptional()
   @IsBoolean()
   ativo?: boolean;
+}
+
+export class DominiosAprovadosDto {
+  @IsArray()
+  @IsString({ each: true })
+  dominios: string[];
 }

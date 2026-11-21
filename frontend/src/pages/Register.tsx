@@ -11,7 +11,10 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const [cadastradoEmail, setCadastradoEmail] = useState<string | null>(null);
+  const [cadastrado, setCadastrado] = useState<{
+    email: string;
+    mensagem: string;
+  } | null>(null);
   const [reenviando, setReenviando] = useState(false);
 
   async function enviar(e: FormEvent) {
@@ -19,8 +22,8 @@ export default function Register() {
     setEnviando(true);
     try {
       const r = await registrar(nome, email, senha);
-      setCadastradoEmail(r.email);
-      toast.ok('Cadastro realizado! Confirme seu e-mail para entrar.');
+      setCadastrado({ email: r.email, mensagem: r.mensagem });
+      toast.ok('Cadastro realizado!');
     } catch (err) {
       toast.erro(err);
     } finally {
@@ -29,10 +32,10 @@ export default function Register() {
   }
 
   async function reenviar() {
-    if (!cadastradoEmail) return;
+    if (!cadastrado) return;
     setReenviando(true);
     try {
-      const r = await api.reenviarConfirmacao(cadastradoEmail);
+      const r = await api.reenviarConfirmacao(cadastrado.email);
       toast.ok(r.mensagem);
     } catch (err) {
       toast.erro(err);
@@ -41,15 +44,15 @@ export default function Register() {
     }
   }
 
-  if (cadastradoEmail) {
+  if (cadastrado) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="card w-full max-w-sm space-y-4 p-6 text-center">
           <div className="text-4xl">✉️</div>
           <h1 className="text-xl font-bold text-cafe-700">Confirme seu e-mail</h1>
-          <p className="text-sm text-stone-600">
-            Enviamos um link de confirmação para <strong>{cadastradoEmail}</strong>.
-            Acesse o link para ativar sua conta antes de fazer login.
+          <p className="text-sm text-stone-600">{cadastrado.mensagem}</p>
+          <p className="text-xs text-stone-500">
+            E-mail cadastrado: <strong>{cadastrado.email}</strong>
           </p>
           <button className="btn-secondary w-full" disabled={reenviando} onClick={reenviar}>
             {reenviando ? 'Reenviando…' : 'Reenviar e-mail de confirmação'}
@@ -58,12 +61,15 @@ export default function Register() {
             Ir para o login
           </Link>
         </div>
+        <p className="mt-6 text-xs text-stone-400">
+          Desenvolvido por <span className="font-semibold text-cafe-700">Studios Melk</span>
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <form onSubmit={enviar} className="card w-full max-w-sm space-y-4 p-6">
         <div className="text-center">
           <div className="text-4xl">☕</div>
@@ -92,6 +98,9 @@ export default function Register() {
           <Link to="/login" className="font-medium text-cafe-600 hover:underline">Entrar</Link>
         </p>
       </form>
+      <p className="mt-6 text-xs text-stone-400">
+        Desenvolvido por <span className="font-semibold text-cafe-700">Studios Melk</span>
+      </p>
     </div>
   );
 }

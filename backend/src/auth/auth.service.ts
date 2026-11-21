@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -21,6 +22,7 @@ interface UsuarioRow {
   perfil: 'ADMIN' | 'USUARIO';
   ativo: number;
   email_verificado: number;
+  aprovado: number;
   deve_trocar_senha: number;
 }
 
@@ -32,23 +34,40 @@ function hashToken(token: string): string {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly db: DatabaseService,
     private readonly jwt: JwtService,
     private readonly mail: MailService,
   ) {}
 
+  private async dominioAutoAprovado(email: string): Promise<boolean> {
+    const dominio = email.split('@')[1]?.toLowerCase();
+    if (!dominio) return false;
+    const [cfg] = await this.db.query<{ valor: string | null }>(
+      `SELECT valor FROM configuracoes_sistema WHERE chave = 'dominios_auto_aprovados'`,
+    );
+    if (!cfg?.valor) return false;
+    const lista = cfg.valor
+      .split(',')
+      .map((d) => d.trim().toLowerCase().replace(/^@/, ''))
+      .filter(Boolean);
+    return lista.includes(dominio);
+  }
+
   async register(dto: RegisterDto) {
     const nome = dto.nome.trim();
     const email = dto.email.trim().toLowerCase();
     const senhaHash = await argon2.hash(dto.senha, { type: argon2.argon2id });
+    const autoAprovado = await this.dominioAutoAprovado(email);
 
     let usuarioId: number;
     try {
       const res = await this.db.execute(
-        `INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo, email_verificado, deve_trocar_senha, criado_em, atualizado_em)
-         VALUES (?, ?, ?, 'USUARIO', 1, 0, 0, NOW(), NOW())`,
-        [nome, email, senhaHash],
+        `INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, criado_em, atualizado_em)
+         VALUES (?, ?, ?, 'USUARIO', 1, 0, ?, 0, NOW(), NOW())`,
+        [nome, email, senhaHash, autoAprovado ? 1 : 0],
       );
       usuarioId = res.insertId;
     } catch (erro) {
@@ -62,16 +81,18 @@ export class AuthService {
     await this.mail.enviarConfirmacaoEmail(email, nome, token);
 
     return {
-      mensagem:
-        'Cadastro realizado! Enviamos um link de confirmacao para o seu e-mail. Confirme antes de entrar.',
+      mensagem: autoAprovado
+        ? 'Cadastro realizado! Enviamos um link de confirmacao para o seu e-mail. Confirme antes de entrar.'
+        : 'Cadastro realizado! Confirme seu e-mail pelo link enviado e aguarde a aprovacao de um administrador para acessar.',
       email,
+      aguardandoAprovacao: !autoAprovado,
     };
   }
 
   async confirmarEmail(token: string) {
     const tokenHash = hashToken(token.trim());
 
-    await this.db.transaction(async (tx) => {
+    const usuarioConfirmado = await this.db.transaction(async (tx) => {
       const [row] = await tx.query<{ id: number; usuario_id: number }>(
         `SELECT id, usuario_id
            FROM tokens_autenticacao
@@ -96,7 +117,42 @@ export class AuthService {
         'UPDATE tokens_autenticacao SET usado_em = NOW() WHERE id = ?',
         [row.id],
       );
+
+      const [u] = await tx.query<{
+        nome: string;
+        email: string;
+        aprovado: number;
+      }>('SELECT nome, email, aprovado FROM usuarios WHERE id = ?', [
+        row.usuario_id,
+      ]);
+      return u;
     });
+
+    // Se ainda aguarda aprovacao, avisa todos os ADMINs ativos por e-mail
+    if (usuarioConfirmado && !usuarioConfirmado.aprovado) {
+      const admins = await this.db.query<{ nome: string; email: string }>(
+        `SELECT nome, email FROM usuarios WHERE perfil = 'ADMIN' AND ativo = 1`,
+      );
+      const envios = await Promise.allSettled(
+        admins.map((a) =>
+          this.mail.enviarAvisoNovoCadastroPendente(
+            a.email,
+            a.nome,
+            usuarioConfirmado.nome,
+            usuarioConfirmado.email,
+          ),
+        ),
+      );
+      for (const e of envios) {
+        if (e.status === 'rejected') {
+          this.logger.error('Falha ao avisar admin sobre cadastro pendente', e.reason);
+        }
+      }
+      return {
+        mensagem:
+          'E-mail confirmado! Seu cadastro agora esta aguardando aprovacao de um administrador. Voce recebera um e-mail assim que for liberado.',
+      };
+    }
 
     return { mensagem: 'E-mail confirmado com sucesso! Agora voce ja pode entrar.' };
   }
@@ -127,7 +183,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const email = dto.email.trim().toLowerCase();
     const [row] = await this.db.query<UsuarioRow>(
-      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, deve_trocar_senha
+      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha
          FROM usuarios WHERE email = ?`,
       [email],
     );
@@ -139,6 +195,12 @@ export class AuthService {
     if (!row.email_verificado) {
       throw new ForbiddenException(
         'E-mail ainda nao confirmado. Verifique sua caixa de entrada ou solicite o reenvio do link.',
+      );
+    }
+
+    if (!row.aprovado) {
+      throw new ForbiddenException(
+        'Seu cadastro esta aguardando aprovacao de um administrador.',
       );
     }
 

@@ -26,6 +26,12 @@ export class CriarCapsulaDto {
   @MaxLength(500)
   imagemUrl?: string | null;
 
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(12)
+  intensidade?: number | null;
+
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(99999999)
@@ -54,6 +60,12 @@ export class AtualizarCapsulaDto {
   @IsString()
   @MaxLength(500)
   imagemUrl?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(12)
+  intensidade?: number | null;
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })

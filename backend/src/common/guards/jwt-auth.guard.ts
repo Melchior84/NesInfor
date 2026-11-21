@@ -51,9 +51,10 @@ export class JwtAuthGuard implements CanActivate {
       perfil: 'ADMIN' | 'USUARIO';
       ativo: number;
       email_verificado: number;
+      aprovado: number;
       deve_trocar_senha: number;
     }>(
-      `SELECT id, nome, email, perfil, ativo, email_verificado, deve_trocar_senha
+      `SELECT id, nome, email, perfil, ativo, email_verificado, aprovado, deve_trocar_senha
          FROM usuarios WHERE id = ?`,
       [payload.sub],
     );
@@ -63,6 +64,11 @@ export class JwtAuthGuard implements CanActivate {
     if (!usuario.email_verificado) {
       throw new ForbiddenException(
         'E-mail ainda nao confirmado. Verifique sua caixa de entrada.',
+      );
+    }
+    if (!usuario.aprovado) {
+      throw new ForbiddenException(
+        'Seu cadastro esta aguardando aprovacao de um administrador.',
       );
     }
 

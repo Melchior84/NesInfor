@@ -11,7 +11,7 @@ export default function Layout() {
   const admin = usuario?.perfil === 'ADMIN';
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
           <span className="mr-2 text-lg font-bold text-cafe-700">☕ Cafezinho Infor</span>
@@ -48,9 +48,13 @@ export default function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <Outlet />
       </main>
+      <footer className="border-t border-stone-200 bg-white py-3 text-center text-xs text-stone-400">
+        Cafezinho Infor · Desenvolvido por{' '}
+        <span className="font-semibold text-cafe-700">Studios Melk</span>
+      </footer>
     </div>
   );
 }

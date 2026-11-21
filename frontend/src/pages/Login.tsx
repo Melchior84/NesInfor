@@ -22,7 +22,11 @@ export default function Login() {
       await login(email, senha);
       navigate('/');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 403) {
+      if (
+        err instanceof ApiError &&
+        err.status === 403 &&
+        err.message.toLowerCase().includes('confirmado')
+      ) {
         setEmailNaoConfirmado(true);
       }
       toast.erro(err);
@@ -45,7 +49,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <form onSubmit={enviar} className="card w-full max-w-sm space-y-4 p-6">
         <div className="text-center">
           <div className="text-4xl">☕</div>
@@ -87,6 +91,9 @@ export default function Login() {
           </Link>
         </p>
       </form>
+      <p className="mt-6 text-xs text-stone-400">
+        Desenvolvido por <span className="font-semibold text-cafe-700">Studios Melk</span>
+      </p>
     </div>
   );
 }

@@ -116,6 +116,11 @@ export class MailService {
   }
 
   async enviar(email: EnvioEmail): Promise<void> {
+    const htmlComRodape =
+      email.html +
+      `<hr style="margin-top:24px;border:none;border-top:1px solid #e7e5e4" />` +
+      `<p style="font-size:11px;color:#a8a29e">Cafezinho Infor · Desenvolvido por <strong>Studios Melk</strong></p>`;
+
     if (this.brevoApiKey) {
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -128,7 +133,7 @@ export class MailService {
           sender: { name: this.senderName, email: this.senderEmail },
           to: [{ email: email.para }],
           subject: email.assunto,
-          htmlContent: email.html,
+          htmlContent: htmlComRodape,
           textContent: email.texto,
         }),
       });
@@ -162,7 +167,7 @@ export class MailService {
       to: email.para,
       subject: email.assunto,
       text: email.texto,
-      html: email.html,
+      html: htmlComRodape,
     });
   }
 
@@ -214,6 +219,45 @@ export class MailService {
         <p>Um administrador redefiniu sua senha no <strong>Cafezinho Infor</strong>.</p>
         <p>Sua senha temporária é: <code><strong>${escapeHtml(senhaTemporaria)}</strong></code></p>
         <p>No próximo acesso em <a href="${link}">${link}</a>, você será solicitado a cadastrar uma nova senha.</p>
+      `,
+    });
+  }
+
+  async enviarAvisoNovoCadastroPendente(
+    paraAdmin: string,
+    nomeAdmin: string,
+    novoNome: string,
+    novoEmail: string,
+  ): Promise<void> {
+    const link = `${this.frontendUrl}/admin/usuarios`;
+    await this.enviar({
+      para: paraAdmin,
+      assunto: `Novo cadastro aguardando aprovação: ${novoNome} - Cafezinho Infor`,
+      linkDestaque: link,
+      texto: `Ola ${nomeAdmin}, ${novoNome} (${novoEmail}) confirmou o e-mail e aguarda sua aprovacao para acessar o Cafezinho Infor. Aprove ou recuse em: ${link}`,
+      html: `
+        <p>Olá, <strong>${escapeHtml(nomeAdmin)}</strong>!</p>
+        <p>Um novo usuário confirmou o e-mail e aguarda aprovação de um administrador para acessar o <strong>Cafezinho Infor</strong>:</p>
+        <ul>
+          <li><strong>Nome:</strong> ${escapeHtml(novoNome)}</li>
+          <li><strong>E-mail:</strong> ${escapeHtml(novoEmail)}</li>
+        </ul>
+        <p><a href="${link}">Abrir painel de Usuários para aprovar ou recusar</a></p>
+      `,
+    });
+  }
+
+  async enviarCadastroAprovado(para: string, nome: string): Promise<void> {
+    const link = `${this.frontendUrl}/login`;
+    await this.enviar({
+      para,
+      assunto: 'Seu cadastro foi aprovado! - Cafezinho Infor',
+      linkDestaque: link,
+      texto: `Ola ${nome}, seu cadastro no Cafezinho Infor foi aprovado por um administrador! Voce ja pode acessar em: ${link}`,
+      html: `
+        <p>Olá, <strong>${escapeHtml(nome)}</strong>!</p>
+        <p>Boa notícia: seu cadastro no <strong>Cafezinho Infor</strong> foi <strong>aprovado</strong> por um administrador!</p>
+        <p><a href="${link}">Acessar o Cafezinho Infor</a></p>
       `,
     });
   }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import IntensidadeBolinhas from '../components/IntensidadeBolinhas';
 import { useToast } from '../components/Toast';
 import { api } from '../lib/api';
 import { dataHora, moeda } from '../lib/format';
@@ -9,10 +10,19 @@ interface Form {
   nome: string;
   descricao: string;
   imagemUrl: string;
+  intensidade: number | null;
   preco: string;
   tamanho: string;
 }
-const NOVO: Form = { id: null, nome: '', descricao: '', imagemUrl: '', preco: '', tamanho: '50' };
+const NOVO: Form = {
+  id: null,
+  nome: '',
+  descricao: '',
+  imagemUrl: '',
+  intensidade: null,
+  preco: '',
+  tamanho: '50',
+};
 
 export default function AdminCapsulas() {
   const toast = useToast();
@@ -56,6 +66,7 @@ export default function AdminCapsulas() {
         nome: form.nome.trim(),
         descricao: form.descricao.trim() || null,
         imagemUrl: form.imagemUrl.trim() || null,
+        intensidade: form.intensidade,
         precoAtual: preco,
         tamanhoCaixa: tamanho,
       };
@@ -130,6 +141,16 @@ export default function AdminCapsulas() {
               className="input"
               value={form.tamanho}
               onChange={(e) => setForm({ ...form, tamanho: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <span className="label">Intensidade (0 a 12 — clique nas bolinhas para marcar)</span>
+          <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+            <IntensidadeBolinhas
+              valor={form.intensidade}
+              onChange={(intensidade) => setForm({ ...form, intensidade })}
             />
           </div>
         </div>
@@ -234,6 +255,11 @@ export default function AdminCapsulas() {
                       )}
                       <div className="min-w-0">
                         <div className="font-medium">{c.nome}</div>
+                        {c.intensidade !== null && (
+                          <div className="mt-0.5">
+                            <IntensidadeBolinhas valor={c.intensidade} compacto />
+                          </div>
+                        )}
                         {c.descricao && (
                           <div className="max-w-md truncate text-xs text-stone-500">
                             {c.descricao}
@@ -254,6 +280,7 @@ export default function AdminCapsulas() {
                           nome: c.nome,
                           descricao: c.descricao ?? '',
                           imagemUrl: c.imagemUrl ?? '',
+                          intensidade: c.intensidade,
                           preco: String(c.precoAtual),
                           tamanho: String(c.tamanhoCaixa),
                         })

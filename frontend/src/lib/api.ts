@@ -78,7 +78,11 @@ export const api = {
   login: (email: string, senha: string) =>
     post<{ token: string; usuario: Usuario }>('/auth/login', { email, senha }),
   register: (nome: string, email: string, senha: string) =>
-    post<{ mensagem: string; email: string }>('/auth/register', { nome, email, senha }),
+    post<{ mensagem: string; email: string; aguardandoAprovacao?: boolean }>('/auth/register', {
+      nome,
+      email,
+      senha,
+    }),
   confirmarEmail: (token: string) =>
     post<{ mensagem: string }>('/auth/confirmar-email', { token }),
   reenviarConfirmacao: (email: string) =>
@@ -103,6 +107,7 @@ export const api = {
     nome: string;
     descricao?: string | null;
     imagemUrl?: string | null;
+    intensidade?: number | null;
     precoAtual: number;
     tamanhoCaixa?: number;
   }) => post<Capsula>('/capsulas', d),
@@ -112,6 +117,7 @@ export const api = {
       nome?: string;
       descricao?: string | null;
       imagemUrl?: string | null;
+      intensidade?: number | null;
       precoAtual?: number;
       tamanhoCaixa?: number;
     },
@@ -145,6 +151,12 @@ export const api = {
 
   // usuários (ADMIN)
   usuarios: () => get<UsuarioAdmin[]>('/usuarios'),
+  dominiosAprovados: () => get<{ dominios: string[] }>('/usuarios/dominios-aprovados'),
+  salvarDominiosAprovados: (dominios: string[]) =>
+    put<{ dominios: string[] }>('/usuarios/dominios-aprovados', { dominios }),
+  aprovarUsuario: (id: number) => post<UsuarioAdmin>(`/usuarios/${id}/aprovar`),
+  recusarUsuario: (id: number) =>
+    request<{ mensagem: string }>('DELETE', `/usuarios/${id}/recusar`),
   atualizarUsuario: (id: number, d: { perfil?: Perfil; ativo?: boolean }) =>
     patch<UsuarioAdmin>(`/usuarios/${id}`, d),
   resetarSenhaUsuario: (id: number) =>
