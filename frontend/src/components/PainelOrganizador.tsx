@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
-import { moeda, ROTULO_STATUS, TRANSICOES } from '../lib/format';
-import type { Participantes, Rodada, ResumoCompra, StatusRodada } from '../types';
+import { moeda, rodadaAtiva, ROTULO_STATUS, TRANSICOES } from '../lib/format';
+import type { Participantes, Rodada, ResumoCompra, StatusRodada, UsuarioAdmin } from '../types';
 import { BadgePagamento } from './Badges';
 import { useToast } from './Toast';
 
@@ -22,6 +23,7 @@ const ROTULO_ACAO: Record<StatusRodada, string> = {
 };
 
 export default function PainelOrganizador({ rodada, participantes, resumoCompra, onChange }: Props) {
+  const { usuario } = useAuth();
   const toast = useToast();
   const [ocupado, setOcupado] = useState(false);
   const [salvandoPag, setSalvandoPag] = useState(false);
@@ -29,6 +31,10 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
   const [banco, setBanco] = useState('');
   const [agencia, setAgencia] = useState('');
   const [conta, setConta] = useState('');
+  const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
+
+  const isAdmin = usuario?.perfil === 'ADMIN';
+  const ativa = rodadaAtiva(rodada.status);
 
   useEffect(() => {
     api
@@ -41,6 +47,14 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin || !ativa) return;
+    api
+      .usuarios()
+      .then((lista) => setUsuarios(lista.filter((u) => u.ativo && u.aprovado)))
+      .catch(() => {});
+  }, [isAdmin, ativa]);
 
   async function salvarPagamento(e: FormEvent) {
     e.preventDefault();
@@ -125,7 +139,37 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
 
   return (
     <section className="card space-y-6 border-cafe-200 bg-cafe-50/40">
-      <h2 className="text-lg font-semibold text-cafe-700">Painel do organizador</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-cafe-700">Painel do organizador</h2>
+        {isAdmin && ativa && usuarios.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-stone-600" htmlFor="delegar-org">
+              Organizador:
+            </label>
+            <select
+              id="delegar-org"
+              className="input w-auto py-1 text-xs"
+              disabled={ocupado}
+              value={rodada.organizadorId ?? ''}
+              onChange={(e) => {
+                const novoId = e.target.value ? Number(e.target.value) : null;
+                void executar(
+                  () => api.definirOrganizador(rodada.id, novoId),
+                  'Organizador da rodada atualizado!',
+                );
+              }}
+            >
+              <option value="">Sem organizador</option>
+              {usuarios.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nome}
+                  {u.perfil === 'ADMIN' ? ' (ADMIN)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {/* Dados de pagamento do organizador enviados por e-mail ao fechar */}
       <form onSubmit={salvarPagamento} className="rounded-lg border border-stone-200 bg-white p-4 space-y-3">

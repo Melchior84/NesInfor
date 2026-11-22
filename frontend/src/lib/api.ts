@@ -168,9 +168,15 @@ export const api = {
   rodadas: () => get<Rodada[]>('/rodadas'),
   rodadaAtiva: () => get<Rodada | null>('/rodadas/ativa'),
   rodada: (id: number) => get<Rodada>(`/rodadas/${id}`),
-  criarRodada: (titulo: string, assumirOrganizacao: boolean) =>
-    post<Rodada>('/rodadas', { titulo, assumirOrganizacao }),
+  criarRodada: (titulo: string, assumirOrganizacao: boolean, organizadorId?: number | null) =>
+    post<Rodada>('/rodadas', {
+      titulo,
+      assumirOrganizacao,
+      ...(organizadorId ? { organizadorId } : {}),
+    }),
   assumirRodada: (id: number) => post<Rodada>(`/rodadas/${id}/assumir`),
+  definirOrganizador: (id: number, organizadorId: number | null) =>
+    patch<Rodada>(`/rodadas/${id}/organizador`, { organizadorId }),
   mudarStatus: (id: number, status: StatusRodada) =>
     patch<Rodada & { notificacoes?: NotificacoesFechamento }>(`/rodadas/${id}/status`, {
       status,

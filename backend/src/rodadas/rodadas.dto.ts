@@ -1,4 +1,13 @@
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export const STATUS_RODADA = [
   'ABERTO',
@@ -15,10 +24,23 @@ export class CriarRodadaDto {
   @MaxLength(150)
   titulo: string;
 
-  /** Se true, quem abriu ja se declara organizador da rodada. */
+  /** Se true (e organizadorId nao informado), quem abriu assume a organizacao. */
   @IsOptional()
   @IsBoolean()
   assumirOrganizacao?: boolean;
+
+  /** Permite ao ADMIN delegar a organizacao diretamente a qualquer usuario ativo. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  organizadorId?: number | null;
+}
+
+export class DefinirOrganizadorDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  organizadorId?: number | null;
 }
 
 export class AlterarStatusDto {

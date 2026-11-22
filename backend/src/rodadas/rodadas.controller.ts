@@ -13,7 +13,11 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RodadaOrganizadorGuard } from '../common/guards/rodada-organizador.guard';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
-import { AlterarStatusDto, CriarRodadaDto } from './rodadas.dto';
+import {
+  AlterarStatusDto,
+  CriarRodadaDto,
+  DefinirOrganizadorDto,
+} from './rodadas.dto';
 import { RodadasService } from './rodadas.service';
 
 @Controller('rodadas')
@@ -49,6 +53,15 @@ export class RodadasController {
     @CurrentUser() usuario: UsuarioAutenticado,
   ) {
     return this.rodadas.assumir(id, usuario);
+  }
+
+  @Roles('ADMIN')
+  @Patch(':id/organizador')
+  definirOrganizador(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: DefinirOrganizadorDto,
+  ) {
+    return this.rodadas.definirOrganizador(id, dto.organizadorId ?? null);
   }
 
   @UseGuards(RodadaOrganizadorGuard)

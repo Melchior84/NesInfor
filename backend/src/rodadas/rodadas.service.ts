@@ -82,12 +82,60 @@ export class RodadasService {
         `Ja existe uma rodada em andamento (#${existente.id} - ${existente.status}). Finalize-a antes de abrir outra.`,
       );
     }
+
+    let organizadorId: number | null = null;
+    if (dto.organizadorId !== undefined && dto.organizadorId !== null) {
+      const [alvo] = await this.db.query<{ id: number }>(
+        'SELECT id FROM usuarios WHERE id = ? AND ativo = 1 AND aprovado = 1',
+        [dto.organizadorId],
+      );
+      if (!alvo) {
+        throw new NotFoundException(
+          'Usuario escolhido como organizador nao encontrado ou inativo.',
+        );
+      }
+      organizadorId = alvo.id;
+    } else if (dto.assumirOrganizacao) {
+      organizadorId = usuario.id;
+    }
+
     const res = await this.db.execute(
       `INSERT INTO rodadas_pedido (titulo, organizador_id, status, data_abertura)
        VALUES (?, ?, 'ABERTO', NOW())`,
-      [dto.titulo.trim(), dto.assumirOrganizacao ? usuario.id : null],
+      [dto.titulo.trim(), organizadorId],
     );
     return this.obter(res.insertId);
+  }
+
+  /** Permite ao ADMIN delegar ou alterar o organizador de uma rodada em andamento. */
+  async definirOrganizador(
+    id: number,
+    organizadorId: number | null,
+  ): Promise<Rodada> {
+    const rodada = await this.obter(id);
+    if (!STATUS_ATIVOS.includes(rodada.status)) {
+      throw new ConflictException(
+        'Nao e possivel alterar o organizador de uma rodada ja encerrada.',
+      );
+    }
+
+    if (organizadorId !== null) {
+      const [alvo] = await this.db.query<{ id: number }>(
+        'SELECT id FROM usuarios WHERE id = ? AND ativo = 1 AND aprovado = 1',
+        [organizadorId],
+      );
+      if (!alvo) {
+        throw new NotFoundException(
+          'Usuario escolhido como organizador nao encontrado ou inativo.',
+        );
+      }
+    }
+
+    await this.db.execute(
+      'UPDATE rodadas_pedido SET organizador_id = ? WHERE id = ?',
+      [organizadorId, id],
+    );
+    return this.obter(id);
   }
 
   /** Atomico: so assume se organizador_id ainda for NULL. */
