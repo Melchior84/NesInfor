@@ -28,9 +28,34 @@ export default function AdminCapsulas() {
   const toast = useToast();
   const [lista, setLista] = useState<Capsula[] | null>(null);
   const [form, setForm] = useState<Form>(NOVO);
+  const [formAberto, setFormAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [enviandoImg, setEnviandoImg] = useState(false);
   const [hist, setHist] = useState<{ capsula: Capsula; itens: HistoricoPreco[] } | null>(null);
+
+  function abrirNovo() {
+    setForm(NOVO);
+    setFormAberto(true);
+  }
+
+  function abrirEdicao(c: Capsula) {
+    setForm({
+      id: c.id,
+      nome: c.nome,
+      descricao: c.descricao ?? '',
+      imagemUrl: c.imagemUrl ?? '',
+      intensidade: c.intensidade,
+      preco: String(c.precoAtual),
+      tamanho: String(c.tamanhoCaixa),
+    });
+    setFormAberto(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function fecharForm() {
+    setForm(NOVO);
+    setFormAberto(false);
+  }
 
   const carregar = useCallback(
     () => api.capsulas().then(setLista).catch(toast.erro),
@@ -77,7 +102,7 @@ export default function AdminCapsulas() {
         await api.atualizarCapsula(form.id, payload);
         toast.ok('Sabor atualizado (histórico de preço registrado se o preço mudou).');
       }
-      setForm(NOVO);
+      fecharForm();
       await carregar();
     } catch (err) {
       toast.erro(err);
@@ -105,9 +130,20 @@ export default function AdminCapsulas() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Catálogo de cápsulas</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">Catálogo de cápsulas</h1>
+        {!formAberto && (
+          <button type="button" className="btn-primary" onClick={abrirNovo}>
+            + Novo
+          </button>
+        )}
+      </div>
 
+      {formAberto && (
       <form onSubmit={salvar} className="card space-y-4">
+        <h2 className="text-base font-semibold text-cafe-700">
+          {form.id === null ? 'Nova cápsula' : `Editando: ${form.nome}`}
+        </h2>
         <div className="grid gap-3 sm:grid-cols-[1fr_8rem_8rem]">
           <div>
             <label className="label" htmlFor="c-nome">Sabor</label>
@@ -215,13 +251,12 @@ export default function AdminCapsulas() {
           <button className="btn-primary" disabled={salvando || enviandoImg}>
             {form.id === null ? 'Adicionar' : 'Salvar alterações'}
           </button>
-          {form.id !== null && (
-            <button type="button" className="btn-secondary" onClick={() => setForm(NOVO)}>
-              Cancelar
-            </button>
-          )}
+          <button type="button" className="btn-secondary" onClick={fecharForm}>
+            Cancelar
+          </button>
         </div>
       </form>
+      )}
 
       <div className="card overflow-x-auto">
         {!lista ? (
@@ -274,17 +309,7 @@ export default function AdminCapsulas() {
                   <td className="space-x-1 py-1 text-right whitespace-nowrap">
                     <button
                       className="btn-secondary btn-sm"
-                      onClick={() =>
-                        setForm({
-                          id: c.id,
-                          nome: c.nome,
-                          descricao: c.descricao ?? '',
-                          imagemUrl: c.imagemUrl ?? '',
-                          intensidade: c.intensidade,
-                          preco: String(c.precoAtual),
-                          tamanho: String(c.tamanhoCaixa),
-                        })
-                      }
+                      onClick={() => abrirEdicao(c)}
                     >
                       Editar
                     </button>
