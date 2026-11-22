@@ -32,8 +32,18 @@ export class UsuariosService {
     private readonly mail: MailService,
   ) {}
 
-  listar() {
-    return this.db.query(
+  async listar() {
+    const rows = await this.db.query<{
+      id: number;
+      nome: string;
+      email: string;
+      perfil: 'ADMIN' | 'USUARIO';
+      ativo: number;
+      emailVerificado: number;
+      aprovado: number;
+      deveTrocarSenha: number;
+      criadoEm: Date;
+    }>(
       `SELECT id, nome, email, perfil, (ativo = 1) AS ativo,
               (email_verificado = 1) AS emailVerificado,
               (aprovado = 1) AS aprovado,
@@ -41,6 +51,13 @@ export class UsuariosService {
               criado_em AS criadoEm
          FROM usuarios ORDER BY aprovado ASC, nome ASC`,
     );
+    return rows.map((u) => ({
+      ...u,
+      ativo: Boolean(u.ativo),
+      emailVerificado: Boolean(u.emailVerificado),
+      aprovado: Boolean(u.aprovado),
+      deveTrocarSenha: Boolean(u.deveTrocarSenha),
+    }));
   }
 
   async obterDominiosAprovados(): Promise<{ dominios: string[] }> {

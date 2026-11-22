@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Put } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AllowPasswordResetPending } from '../common/decorators/allow-password-reset-pending.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -19,12 +20,14 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 15 } })
   @HttpCode(200)
   @Post('confirmar-email')
   confirmarEmail(@Body() dto: ConfirmarEmailDto) {
@@ -32,6 +35,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @HttpCode(200)
   @Post('reenviar-confirmacao')
   reenviarConfirmacao(@Body() dto: EmailDto) {
@@ -39,6 +43,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @HttpCode(200)
   @Post('login')
   login(@Body() dto: LoginDto) {
@@ -46,6 +51,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @HttpCode(200)
   @Post('esqueci-senha')
   esqueciSenha(@Body() dto: EmailDto) {
@@ -53,6 +59,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @HttpCode(200)
   @Post('redefinir-senha')
   redefinirSenha(@Body() dto: RedefinirSenhaDto) {

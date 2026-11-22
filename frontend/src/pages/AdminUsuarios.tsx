@@ -217,7 +217,7 @@ export default function AdminUsuarios() {
                             E-mail pendente
                           </span>
                         )}
-                        {u.deveTrocarSenha && (
+                        {Boolean(u.deveTrocarSenha) && (
                           <span className="rounded bg-sky-100 px-1.5 py-0.5 text-sky-800">
                             Troca de senha pendente
                           </span>

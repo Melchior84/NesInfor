@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { randomUUID } from 'crypto';
-import { mkdirSync } from 'fs';
+import { mkdirSync, openSync, readSync, closeSync, unlinkSync } from 'fs';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -40,6 +40,26 @@ const pastaCapsulas = () => {
   mkdirSync(dir, { recursive: true });
   return dir;
 };
+
+/** Valida assinatura real (magic bytes) de PNG, JPEG, GIF ou WebP. */
+function ehImagemValida(caminho: string): boolean {
+  const buf = Buffer.alloc(12);
+  const fd = openSync(caminho, 'r');
+  try {
+    const lidos = readSync(fd, buf, 0, 12, 0);
+    if (lidos < 4) return false;
+    const png = buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+    const jpg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+    const gif = buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38;
+    const webp =
+      lidos >= 12 &&
+      buf.toString('ascii', 0, 4) === 'RIFF' &&
+      buf.toString('ascii', 8, 12) === 'WEBP';
+    return png || jpg || gif || webp;
+  } finally {
+    closeSync(fd);
+  }
+}
 
 @Controller('capsulas')
 export class CapsulasController {
@@ -79,6 +99,16 @@ export class CapsulasController {
   uploadImagem(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo de imagem enviado.');
+    }
+    if (!ehImagemValida(file.path)) {
+      try {
+        unlinkSync(file.path);
+      } catch {
+        // ignora erro de limpeza
+      }
+      throw new BadRequestException(
+        'Arquivo invalido: o conteudo nao corresponde a uma imagem PNG, JPG, WebP ou GIF.',
+      );
     }
     return { imagemUrl: `/uploads/capsulas/${file.filename}` };
   }

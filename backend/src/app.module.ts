@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { CapsulasModule } from './capsulas/capsulas.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -14,6 +15,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     DatabaseModule,
     MailModule,
     AuthModule,
@@ -23,7 +25,8 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     SolicitacoesModule,
   ],
   providers: [
-    // Ordem importa: primeiro autentica (JWT), depois valida perfil (ADMIN)
+    // Ordem importa: rate limit, depois JWT, depois perfil (ADMIN)
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

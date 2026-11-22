@@ -4,11 +4,14 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
+
+const IMAGEM_URL_REGEX = /^(https?:\/\/|\/uploads\/)/i;
 
 export class CriarCapsulaDto {
   @IsString()
@@ -24,6 +27,9 @@ export class CriarCapsulaDto {
   @IsOptional()
   @IsString()
   @MaxLength(500)
+  @Matches(IMAGEM_URL_REGEX, {
+    message: 'imagemUrl deve comecar com http://, https:// ou /uploads/.',
+  })
   imagemUrl?: string | null;
 
   @IsOptional()
@@ -59,6 +65,9 @@ export class AtualizarCapsulaDto {
   @IsOptional()
   @IsString()
   @MaxLength(500)
+  @Matches(IMAGEM_URL_REGEX, {
+    message: 'imagemUrl deve comecar com http://, https:// ou /uploads/.',
+  })
   imagemUrl?: string | null;
 
   @IsOptional()

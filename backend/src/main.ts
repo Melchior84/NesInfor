@@ -3,11 +3,21 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import { existsSync, mkdirSync } from 'fs';
+import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Confia no proxy reverso do Railway (necessario para rate limit por IP real)
+  app.set('trust proxy', 1);
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // Uploads persistentes (em producao no Railway, monte um Volume em UPLOADS_DIR)
   const uploadsDir = process.env.UPLOADS_DIR || join(process.cwd(), 'uploads');
