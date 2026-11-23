@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import GoogleButton from '../components/GoogleButton';
 import { useToast } from '../components/Toast';
 import { api, ApiError } from '../lib/api';
 
@@ -13,11 +14,13 @@ export default function Login() {
   const [enviando, setEnviando] = useState(false);
   const [emailNaoConfirmado, setEmailNaoConfirmado] = useState(false);
   const [reenviando, setReenviando] = useState(false);
+  const [avisoPendente, setAvisoPendente] = useState<string | null>(null);
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
     setEnviando(true);
     setEmailNaoConfirmado(false);
+    setAvisoPendente(null);
     try {
       await login(email, senha);
       navigate('/');
@@ -81,9 +84,25 @@ export default function Login() {
           </div>
         )}
 
+        {avisoPendente && (
+          <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+            {avisoPendente}
+          </div>
+        )}
+
         <button className="btn-primary w-full" disabled={enviando}>
           {enviando ? 'Entrando…' : 'Entrar'}
         </button>
+
+        <GoogleButton
+          texto="continue_with"
+          onSuccess={() => navigate('/')}
+          onPending={(mensagem) => {
+            setAvisoPendente(mensagem);
+            toast.ok('Conta criada! Aguardando aprovação.');
+          }}
+        />
+
         <p className="text-center text-sm text-stone-500">
           Não tem conta?{' '}
           <Link to="/cadastro" className="font-medium text-cafe-600 hover:underline">

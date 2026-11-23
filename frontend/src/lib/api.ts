@@ -75,6 +75,12 @@ const patch = <T>(p: string, b: unknown) => request<T>('PATCH', p, b);
 
 export const api = {
   // auth
+  authConfig: () => get<{ googleClientId: string | null }>('/auth/config'),
+  loginGoogle: (credential: string) =>
+    post<
+      | { token: string; usuario: Usuario; aguardandoAprovacao?: false }
+      | { aguardandoAprovacao: true; mensagem: string; email: string }
+    >('/auth/google', { credential }),
   login: (email: string, senha: string) =>
     post<{ token: string; usuario: Usuario }>('/auth/login', { email, senha }),
   register: (nome: string, email: string, senha: string) =>

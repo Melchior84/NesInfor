@@ -14,6 +14,9 @@ interface AuthCtx {
   usuario: Usuario | null;
   carregando: boolean;
   login: (email: string, senha: string) => Promise<void>;
+  entrarComGoogle: (
+    credential: string,
+  ) => Promise<{ entrou: true } | { entrou: false; mensagem: string; email: string }>;
   registrar: (nome: string, email: string, senha: string) => Promise<{ mensagem: string; email: string }>;
   atualizarUsuario: (u: Usuario) => void;
   sair: () => void;
@@ -50,6 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const r = await api.login(email, senha);
         tokenStore.set(r.token);
         setUsuario(r.usuario);
+      },
+      entrarComGoogle: async (credential) => {
+        const r = await api.loginGoogle(credential);
+        if ('token' in r) {
+          tokenStore.set(r.token);
+          setUsuario(r.usuario);
+          return { entrou: true };
+        }
+        return { entrou: false, mensagem: r.mensagem, email: r.email };
       },
       registrar: (nome, email, senha) => api.register(nome, email, senha),
     }),

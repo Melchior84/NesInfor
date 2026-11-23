@@ -6,9 +6,11 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { createHash, randomBytes } from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
 import { DatabaseService, isDuplicateEntry } from '../database/database.service';
 import { MailService } from '../mail/mail.service';
@@ -35,12 +37,39 @@ function hashToken(token: string): string {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly googleClientId: string | null;
+  private readonly googleClient: OAuth2Client | null;
 
   constructor(
     private readonly db: DatabaseService,
     private readonly jwt: JwtService,
     private readonly mail: MailService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID')?.trim() || null;
+    this.googleClientId = clientId;
+    this.googleClient = clientId ? new OAuth2Client(clientId) : null;
+  }
+
+  obterConfigPublica() {
+    return { googleClientId: this.googleClientId };
+  }
+
+  private async avisarAdminsCadastroPendente(nome: string, email: string) {
+    const admins = await this.db.query<{ nome: string; email: string }>(
+      `SELECT nome, email FROM usuarios WHERE perfil = 'ADMIN' AND ativo = 1`,
+    );
+    const envios = await Promise.allSettled(
+      admins.map((a) =>
+        this.mail.enviarAvisoNovoCadastroPendente(a.email, a.nome, nome, email),
+      ),
+    );
+    for (const e of envios) {
+      if (e.status === 'rejected') {
+        this.logger.error('Falha ao avisar admin sobre cadastro pendente', e.reason);
+      }
+    }
+  }
 
   private async dominioAutoAprovado(email: string): Promise<boolean> {
     const dominio = email.split('@')[1]?.toLowerCase();
@@ -130,24 +159,10 @@ export class AuthService {
 
     // Se ainda aguarda aprovacao, avisa todos os ADMINs ativos por e-mail
     if (usuarioConfirmado && !usuarioConfirmado.aprovado) {
-      const admins = await this.db.query<{ nome: string; email: string }>(
-        `SELECT nome, email FROM usuarios WHERE perfil = 'ADMIN' AND ativo = 1`,
+      await this.avisarAdminsCadastroPendente(
+        usuarioConfirmado.nome,
+        usuarioConfirmado.email,
       );
-      const envios = await Promise.allSettled(
-        admins.map((a) =>
-          this.mail.enviarAvisoNovoCadastroPendente(
-            a.email,
-            a.nome,
-            usuarioConfirmado.nome,
-            usuarioConfirmado.email,
-          ),
-        ),
-      );
-      for (const e of envios) {
-        if (e.status === 'rejected') {
-          this.logger.error('Falha ao avisar admin sobre cadastro pendente', e.reason);
-        }
-      }
       return {
         mensagem:
           'E-mail confirmado! Seu cadastro agora esta aguardando aprovacao de um administrador. Voce recebera um e-mail assim que for liberado.',
@@ -212,6 +227,107 @@ export class AuthService {
       deveTrocarSenha: Boolean(row.deve_trocar_senha),
     };
     return { token: await this.assinar(usuario), usuario };
+  }
+
+  async autenticarGoogle(credential: string) {
+    if (!this.googleClientId || !this.googleClient) {
+      throw new BadRequestException('Login com Google nao esta configurado.');
+    }
+
+    let payload:
+      | { email?: string; email_verified?: boolean; name?: string }
+      | undefined;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: credential,
+        audience: this.googleClientId,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Token do Google invalido ou expirado.');
+    }
+
+    if (!payload?.email || !payload.email_verified) {
+      throw new UnauthorizedException(
+        'Conta Google sem e-mail verificado.',
+      );
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const nome = (payload.name?.trim() || email.split('@')[0]).slice(0, 120);
+
+    const [existente] = await this.db.query<UsuarioRow>(
+      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha
+         FROM usuarios WHERE email = ?`,
+      [email],
+    );
+
+    if (existente) {
+      if (!existente.ativo) {
+        throw new UnauthorizedException('Usuario inativo.');
+      }
+      if (!existente.email_verificado) {
+        await this.db.execute(
+          'UPDATE usuarios SET email_verificado = 1, atualizado_em = NOW() WHERE id = ?',
+          [existente.id],
+        );
+      }
+      if (!existente.aprovado) {
+        throw new ForbiddenException(
+          'Seu cadastro esta aguardando aprovacao de um administrador.',
+        );
+      }
+      const usuario: UsuarioAutenticado = {
+        id: existente.id,
+        nome: existente.nome,
+        email: existente.email,
+        perfil: existente.perfil,
+        deveTrocarSenha: Boolean(existente.deve_trocar_senha),
+      };
+      return { token: await this.assinar(usuario), usuario };
+    }
+
+    const autoAprovado = await this.dominioAutoAprovado(email);
+    const senhaAleatoria = randomBytes(32).toString('hex');
+    const senhaHash = await argon2.hash(senhaAleatoria, {
+      type: argon2.argon2id,
+    });
+
+    let usuarioId: number;
+    try {
+      const res = await this.db.execute(
+        `INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, criado_em, atualizado_em)
+         VALUES (?, ?, ?, 'USUARIO', 1, 1, ?, 0, NOW(), NOW())`,
+        [nome, email, senhaHash, autoAprovado ? 1 : 0],
+      );
+      usuarioId = res.insertId;
+    } catch (erro) {
+      if (isDuplicateEntry(erro)) {
+        throw new ConflictException(
+          'Este e-mail acabou de ser cadastrado. Tente entrar novamente.',
+        );
+      }
+      throw erro;
+    }
+
+    if (autoAprovado) {
+      const usuario: UsuarioAutenticado = {
+        id: usuarioId,
+        nome,
+        email,
+        perfil: 'USUARIO',
+        deveTrocarSenha: false,
+      };
+      return { token: await this.assinar(usuario), usuario };
+    }
+
+    await this.avisarAdminsCadastroPendente(nome, email);
+    return {
+      aguardandoAprovacao: true as const,
+      email,
+      mensagem:
+        'Conta criada com o Google! Seu cadastro agora esta aguardando aprovacao de um administrador. Voce recebera um e-mail assim que for liberado.',
+    };
   }
 
   async esqueciSenha(emailRaw: string) {

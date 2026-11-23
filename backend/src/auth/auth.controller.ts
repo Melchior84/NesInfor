@@ -8,6 +8,7 @@ import {
   ConfirmarEmailDto,
   DadosPagamentoDto,
   EmailDto,
+  GoogleAuthDto,
   LoginDto,
   RedefinirSenhaDto,
   RegisterDto,
@@ -18,6 +19,20 @@ import { AuthService } from './auth.service';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
+
+  @Public()
+  @Get('config')
+  config() {
+    return this.auth.obterConfigPublica();
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 15 } })
+  @HttpCode(200)
+  @Post('google')
+  google(@Body() dto: GoogleAuthDto) {
+    return this.auth.autenticarGoogle(dto.credential);
+  }
 
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 10 } })

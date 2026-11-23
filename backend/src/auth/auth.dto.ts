@@ -78,3 +78,10 @@ export class DadosPagamentoDto {
   @MaxLength(40)
   conta?: string | null;
 }
+
+export class GoogleAuthDto {
+  @IsString()
+  @MinLength(20)
+  @MaxLength(4096)
+  credential: string;
+}

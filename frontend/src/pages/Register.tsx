@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import GoogleButton from '../components/GoogleButton';
 import { useToast } from '../components/Toast';
 import { api } from '../lib/api';
 
 export default function Register() {
   const { registrar } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -14,6 +16,7 @@ export default function Register() {
   const [cadastrado, setCadastrado] = useState<{
     email: string;
     mensagem: string;
+    viaGoogle?: boolean;
   } | null>(null);
   const [reenviando, setReenviando] = useState(false);
 
@@ -48,15 +51,19 @@ export default function Register() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="card w-full max-w-sm space-y-4 p-6 text-center">
-          <div className="text-4xl">✉️</div>
-          <h1 className="text-xl font-bold text-cafe-700">Confirme seu e-mail</h1>
+          <div className="text-4xl">{cadastrado.viaGoogle ? '⏳' : '✉️'}</div>
+          <h1 className="text-xl font-bold text-cafe-700">
+            {cadastrado.viaGoogle ? 'Aguardando aprovação' : 'Confirme seu e-mail'}
+          </h1>
           <p className="text-sm text-stone-600">{cadastrado.mensagem}</p>
           <p className="text-xs text-stone-500">
             E-mail cadastrado: <strong>{cadastrado.email}</strong>
           </p>
-          <button className="btn-secondary w-full" disabled={reenviando} onClick={reenviar}>
-            {reenviando ? 'Reenviando…' : 'Reenviar e-mail de confirmação'}
-          </button>
+          {!cadastrado.viaGoogle && (
+            <button className="btn-secondary w-full" disabled={reenviando} onClick={reenviar}>
+              {reenviando ? 'Reenviando…' : 'Reenviar e-mail de confirmação'}
+            </button>
+          )}
           <Link to="/login" className="btn-primary w-full">
             Ir para o login
           </Link>
@@ -93,6 +100,16 @@ export default function Register() {
         <button className="btn-primary w-full" disabled={enviando}>
           {enviando ? 'Criando…' : 'Criar conta'}
         </button>
+
+        <GoogleButton
+          texto="signup_with"
+          onSuccess={() => navigate('/')}
+          onPending={(mensagem, emailGoogle) => {
+            setCadastrado({ email: emailGoogle, mensagem, viaGoogle: true });
+            toast.ok('Conta criada com o Google!');
+          }}
+        />
+
         <p className="text-center text-sm text-stone-500">
           Já tem conta?{' '}
           <Link to="/login" className="font-medium text-cafe-600 hover:underline">Entrar</Link>
