@@ -51,7 +51,7 @@ export class RodadasService {
   constructor(
     private readonly db: DatabaseService,
     private readonly mail: MailService,
-  ) {}
+  ) { }
 
   listar(): Promise<Rodada[]> {
     return this.db.query<Rodada>(`${SELECT_RODADA} ORDER BY r.id DESC`);
@@ -234,8 +234,8 @@ export class RodadasService {
 
       const fechamento =
         novo === 'FECHADO' ? 'data_fechamento = NOW()'
-        : novo === 'ABERTO' ? 'data_fechamento = NULL'
-        : null;
+          : novo === 'ABERTO' ? 'data_fechamento = NULL'
+            : null;
       await tx.execute(
         `UPDATE rodadas_pedido SET status = ?${fechamento ? ', ' + fechamento : ''} WHERE id = ?`,
         [novo, id],
@@ -260,20 +260,20 @@ export class RodadasService {
     const organizadorId = rodada.organizadorId ?? ator?.id ?? null;
     const [org] = organizadorId
       ? await this.db.query<{
-          id: number;
-          nome: string;
-          email: string;
-          pixChave: string | null;
-          banco: string | null;
-          agencia: string | null;
-          conta: string | null;
-          receberEmailsCafe: number;
-        }>(
-          `SELECT id, nome, email, pix_chave AS pixChave, banco, agencia, conta,
+        id: number;
+        nome: string;
+        email: string;
+        pixChave: string | null;
+        banco: string | null;
+        agencia: string | null;
+        conta: string | null;
+        receberEmailsCafe: number;
+      }>(
+        `SELECT id, nome, email, pix_chave AS pixChave, banco, agencia, conta,
                   receber_emails_cafe AS receberEmailsCafe
              FROM usuarios WHERE id = ?`,
-          [organizadorId],
-        )
+        [organizadorId],
+      )
       : [];
 
     const solicitacoes = await this.db.query<{
@@ -794,18 +794,18 @@ export class RodadasService {
     const novidadeRow = ativas[0] ?? null;
     const saborNovidade = novidadeRow
       ? {
-          capsulaId: novidadeRow.id,
-          nome: novidadeRow.nome,
-          descricao: novidadeRow.descricao,
-          imagemUrl: novidadeRow.imagemUrl,
-          intensidade:
-            novidadeRow.intensidade !== null && novidadeRow.intensidade !== undefined
-              ? Number(novidadeRow.intensidade)
-              : null,
-          precoAtual: Number(novidadeRow.precoAtual),
-          criadoEm: novidadeRow.criadoEm,
-          jaExperimentou: provadosSet.has(novidadeRow.id),
-        }
+        capsulaId: novidadeRow.id,
+        nome: novidadeRow.nome,
+        descricao: novidadeRow.descricao,
+        imagemUrl: novidadeRow.imagemUrl,
+        intensidade:
+          novidadeRow.intensidade !== null && novidadeRow.intensidade !== undefined
+            ? Number(novidadeRow.intensidade)
+            : null,
+        precoAtual: Number(novidadeRow.precoAtual),
+        criadoEm: novidadeRow.criadoEm,
+        jaExperimentou: provadosSet.has(novidadeRow.id),
+      }
       : null;
 
     // Top sabores do ano (prioriza confirmadas; se ainda nao fechou caixa, usa solicitadas)
@@ -913,10 +913,10 @@ export class RodadasService {
       mediaCapsulasPorPedido:
         totalPedidosAno > 0
           ? Math.round(
-              ((usarConfirmadas ? totalCapsulasConsumidasAno : totalCapsulasSolicitadasAno) /
-                totalPedidosAno) *
-                10,
-            ) / 10
+            ((usarConfirmadas ? totalCapsulasConsumidasAno : totalCapsulasSolicitadasAno) /
+              totalPedidosAno) *
+            10,
+          ) / 10
           : 0,
       cafezinhosDoadosAno,
       posicaoRanking: minhaPosicaoRanking,

@@ -22,6 +22,7 @@ export default function PainelUsuario() {
   const [dados, setDados] = useState<MeuPainel | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvandoPref, setSalvandoPref] = useState(false);
+  const [mostrarPrefs, setMostrarPrefs] = useState(false);
 
   async function alternarEmails(marcado: boolean) {
     if (!dados) return;
@@ -76,23 +77,37 @@ export default function PainelUsuario() {
           </p>
         </div>
 
-        {dados && dados.anosDisponiveis.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="painel-ano" className="text-xs font-medium text-stone-600">
-              Ano:
-            </label>
-            <select
-              id="painel-ano"
-              className="input w-auto py-1.5 text-sm font-medium"
-              value={ano}
-              onChange={(e) => setAno(Number(e.target.value))}
+        {dados && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMostrarPrefs((v) => !v)}
+              className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 transition hover:bg-stone-50"
+              title="Configurar notificações por e-mail"
             >
-              {dados.anosDisponiveis.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
+              {dados.receberEmailsCafe ? '🔔 E-mails: Ativos' : '🔕 E-mails: Desativados'}{' '}
+              <span className="text-stone-400">{mostrarPrefs ? '▴' : '▾'}</span>
+            </button>
+
+            {dados.anosDisponiveis.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label htmlFor="painel-ano" className="text-xs font-medium text-stone-600">
+                  Ano:
+                </label>
+                <select
+                  id="painel-ano"
+                  className="input w-auto py-1.5 text-sm font-medium"
+                  value={ano}
+                  onChange={(e) => setAno(Number(e.target.value))}
+                >
+                  {dados.anosDisponiveis.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -101,28 +116,30 @@ export default function PainelUsuario() {
         <p className="text-stone-500">Carregando seu painel…</p>
       ) : (
         <>
-          {/* Preferência de e-mails sobre os cafés */}
-          <section className="card flex flex-wrap items-center justify-between gap-3">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-stone-300 accent-cafe-600"
-                checked={dados.receberEmailsCafe}
-                disabled={salvandoPref}
-                onChange={(e) => void alternarEmails(e.target.checked)}
-              />
-              <div>
-                <div className="text-sm font-semibold text-stone-800">
-                  🔔 Receber e-mails sobre os cafés
+          {/* Preferência de e-mails (expansível sob demanda) */}
+          {mostrarPrefs && (
+            <section className="rounded-xl border border-stone-200 bg-stone-50/80 p-3.5 text-sm">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-stone-300 accent-cafe-600"
+                  checked={dados.receberEmailsCafe}
+                  disabled={salvandoPref}
+                  onChange={(e) => void alternarEmails(e.target.checked)}
+                />
+                <div>
+                  <div className="text-xs font-semibold text-stone-800">
+                    Receber e-mails sobre os cafés
+                  </div>
+                  <p className="text-xs text-stone-500">
+                    Quando marcado, você recebe avisos quando uma nova rodada for aberta e o resumo
+                    do seu pedido ao fechar. Desmarque para não receber nenhum e-mail sobre os
+                    cafés.
+                  </p>
                 </div>
-                <p className="text-xs text-stone-500">
-                  Quando marcado, você recebe avisos quando uma nova rodada de café for aberta e o
-                  resumo do seu pedido ao fechar. Desmarque se não quiser receber nenhum e-mail
-                  sobre os cafés.
-                </p>
-              </div>
-            </label>
-          </section>
+              </label>
+            </section>
+          )}
 
           {/* KPIs principais */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
