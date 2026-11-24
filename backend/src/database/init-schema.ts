@@ -27,6 +27,7 @@ export async function garantirSchema(
       banco VARCHAR(100) NULL,
       agencia VARCHAR(30) NULL,
       conta VARCHAR(40) NULL,
+      receber_emails_cafe TINYINT(1) NOT NULL DEFAULT 1,
       criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
@@ -193,6 +194,12 @@ export async function garantirSchema(
       `ALTER TABLE usuarios ADD COLUMN aprovado TINYINT(1) NOT NULL DEFAULT 1 AFTER email_verificado`,
     );
     logger.log(`Coluna usuarios.aprovado adicionada (banco ${dbName}).`);
+  }
+  if (!usrExistentes.has('receber_emails_cafe')) {
+    await pool.query(
+      `ALTER TABLE usuarios ADD COLUMN receber_emails_cafe TINYINT(1) NOT NULL DEFAULT 1 AFTER conta`,
+    );
+    logger.log(`Coluna usuarios.receber_emails_cafe adicionada (banco ${dbName}).`);
   }
 
   const [pixColRows] = await pool.execute(

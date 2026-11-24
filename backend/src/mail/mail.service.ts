@@ -269,6 +269,37 @@ export class MailService {
     });
   }
 
+  async enviarNovaRodadaAberta(
+    para: string,
+    nome: string,
+    rodadaTitulo: string,
+    organizadorNome: string | null,
+  ): Promise<void> {
+    const link = `${this.frontendUrl}/`;
+    const linkPainel = `${this.frontendUrl}/painel`;
+    const orgTxt = organizadorNome ? ` Organizador: ${organizadorNome}.` : '';
+    await this.enviar({
+      para,
+      assunto: `☕ Nova rodada aberta: ${rodadaTitulo} - Cafezinho Infor`,
+      linkDestaque: link,
+      texto:
+        `Ola ${nome}!\n\n` +
+        `Uma nova rodada de pedidos de cafe foi aberta: "${rodadaTitulo}".${orgTxt}\n\n` +
+        `Acesse para escolher suas capsulas: ${link}\n\n` +
+        `Se nao quiser mais receber avisos de cafe por e-mail, desative no seu Painel: ${linkPainel}`,
+      html: `
+        <p>Olá, <strong>${escapeHtml(nome)}</strong>!</p>
+        <p>☕ Uma nova rodada de pedidos coletivos foi aberta no <strong>Cafezinho Infor</strong>:</p>
+        <div style="margin:12px 0;padding:12px;border:1px solid #e2cdb3;background:#faf6f1;border-radius:8px;max-width:520px">
+          <p style="margin:0;font-size:16px;color:#583619"><strong>${escapeHtml(rodadaTitulo)}</strong></p>
+          ${organizadorNome ? `<p style="margin:4px 0 0 0;font-size:13px;color:#57534e">Organizador: <strong>${escapeHtml(organizadorNome)}</strong></p>` : ''}
+        </div>
+        <p><a href="${link}" style="display:inline-block;padding:10px 18px;background:#7c4a1d;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold">Fazer meu pedido de café</a></p>
+        <p style="font-size:11px;color:#78716c;margin-top:16px">Você recebeu este aviso porque optou por receber e-mails sobre os cafés. Para alterar, acesse seu <a href="${linkPainel}">Painel</a>.</p>
+      `,
+    });
+  }
+
   async enviarFechamentoParticipante(
     p: EmailFechamentoParticipanteParams,
   ): Promise<void> {

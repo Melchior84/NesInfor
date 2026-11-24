@@ -434,6 +434,19 @@ export class AuthService {
     return this.obterDadosPagamento(usuarioId);
   }
 
+  async salvarPreferenciasEmail(
+    usuarioId: number,
+    receberEmailsCafe: boolean,
+  ) {
+    await this.db.execute(
+      `UPDATE usuarios
+          SET receber_emails_cafe = ?, atualizado_em = NOW()
+        WHERE id = ?`,
+      [receberEmailsCafe ? 1 : 0, usuarioId],
+    );
+    return { receberEmailsCafe };
+  }
+
   private async criarToken(
     usuarioId: number,
     tipo: TipoToken,

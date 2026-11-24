@@ -27,7 +27,13 @@ export default function NovaRodadaForm({ onCriada }: { onCriada: (r: Rodada) => 
     try {
       const orgId = organizadorId ? Number(organizadorId) : null;
       const r = await api.criarRodada(titulo.trim(), false, orgId);
-      toast.ok('Nova rodada aberta!');
+      const env = r.notificacoes?.enviados ?? 0;
+      const falhas = r.notificacoes?.falhas ?? 0;
+      toast.ok(
+        env > 0
+          ? `Nova rodada aberta! E-mail enviado para ${env} participante(s)${falhas ? ` (${falhas} falha(s))` : ''}.`
+          : 'Nova rodada aberta!',
+      );
       setTitulo('');
       onCriada(r);
     } catch (err) {

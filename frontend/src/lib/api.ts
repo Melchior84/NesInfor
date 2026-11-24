@@ -107,6 +107,8 @@ export const api = {
   dadosPagamento: () => get<DadosPagamento>('/auth/dados-pagamento'),
   salvarDadosPagamento: (d: DadosPagamento) =>
     put<DadosPagamento>('/auth/dados-pagamento', d),
+  salvarPreferenciasEmail: (receberEmailsCafe: boolean) =>
+    put<{ receberEmailsCafe: boolean }>('/auth/preferencias-email', { receberEmailsCafe }),
 
   // cápsulas
   capsulas: (somenteAtivas = false) =>
@@ -185,7 +187,7 @@ export const api = {
     ),
   rodada: (id: number) => get<Rodada>(`/rodadas/${id}`),
   criarRodada: (titulo: string, assumirOrganizacao: boolean, organizadorId?: number | null) =>
-    post<Rodada>('/rodadas', {
+    post<Rodada & { notificacoes?: { enviados: number; falhas: number } }>('/rodadas', {
       titulo,
       assumirOrganizacao,
       ...(organizadorId ? { organizadorId } : {}),

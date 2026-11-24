@@ -10,6 +10,7 @@ import {
   EmailDto,
   GoogleAuthDto,
   LoginDto,
+  PreferenciasEmailDto,
   RedefinirSenhaDto,
   RegisterDto,
   TrocarSenhaObrigatoriaDto,
@@ -108,5 +109,13 @@ export class AuthController {
     @Body() dto: DadosPagamentoDto,
   ) {
     return this.auth.salvarDadosPagamento(usuario.id, dto);
+  }
+
+  @Put('preferencias-email')
+  salvarPreferenciasEmail(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() dto: PreferenciasEmailDto,
+  ) {
+    return this.auth.salvarPreferenciasEmail(usuario.id, dto.receberEmailsCafe);
   }
 }

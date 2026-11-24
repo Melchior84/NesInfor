@@ -76,7 +76,10 @@ export class RodadasService {
     return rodada;
   }
 
-  async criar(dto: CriarRodadaDto, usuario: UsuarioAutenticado): Promise<Rodada> {
+  async criar(
+    dto: CriarRodadaDto,
+    usuario: UsuarioAutenticado,
+  ): Promise<Rodada & { notificacoes: { enviados: number; falhas: number } }> {
     const existente = await this.ativa();
     if (existente) {
       throw new ConflictException(
@@ -105,7 +108,42 @@ export class RodadasService {
        VALUES (?, ?, 'ABERTO', NOW())`,
       [dto.titulo.trim(), organizadorId],
     );
-    return this.obter(res.insertId);
+    const rodada = await this.obter(res.insertId);
+    const notificacoes = await this.notificarNovaRodada(rodada);
+    return { ...rodada, notificacoes };
+  }
+
+  private async notificarNovaRodada(rodada: Rodada) {
+    const destinatarios = await this.db.query<{ nome: string; email: string }>(
+      `SELECT nome, email
+         FROM usuarios
+        WHERE ativo = 1
+          AND aprovado = 1
+          AND email_verificado = 1
+          AND receber_emails_cafe = 1
+        ORDER BY nome`,
+    );
+
+    let enviados = 0;
+    let falhas = 0;
+    const resultados = await Promise.allSettled(
+      destinatarios.map((u) =>
+        this.mail.enviarNovaRodadaAberta(
+          u.email,
+          u.nome,
+          rodada.titulo,
+          rodada.organizadorNome,
+        ),
+      ),
+    );
+    for (const r of resultados) {
+      if (r.status === 'fulfilled') enviados++;
+      else {
+        falhas++;
+        this.logger.error('Erro ao enviar e-mail de nova rodada aberta', r.reason);
+      }
+    }
+    return { enviados, falhas };
   }
 
   /** Permite ao ADMIN delegar ou alterar o organizador de uma rodada em andamento. */
@@ -229,8 +267,10 @@ export class RodadasService {
           banco: string | null;
           agencia: string | null;
           conta: string | null;
+          receberEmailsCafe: number;
         }>(
-          `SELECT id, nome, email, pix_chave AS pixChave, banco, agencia, conta
+          `SELECT id, nome, email, pix_chave AS pixChave, banco, agencia, conta,
+                  receber_emails_cafe AS receberEmailsCafe
              FROM usuarios WHERE id = ?`,
           [organizadorId],
         )
@@ -240,11 +280,13 @@ export class RodadasService {
       usuarioId: number;
       nome: string;
       email: string;
+      receberEmailsCafe: number;
       statusPagamento: 'PENDENTE' | 'PAGO';
       cafezinhosGorjeta: number;
       valorGorjeta: number;
     }>(
       `SELECT u.id AS usuarioId, u.nome, u.email,
+              u.receber_emails_cafe AS receberEmailsCafe,
               s.status_pagamento AS statusPagamento,
               s.cafezinhos_gorjeta AS cafezinhosGorjeta,
               s.valor_gorjeta AS valorGorjeta
@@ -315,19 +357,21 @@ export class RodadasService {
     let falhas = 0;
 
     const resultadosPart = await Promise.allSettled(
-      participantesComItens.map((p) =>
-        this.mail.enviarFechamentoParticipante({
-          para: p.email,
-          nomeParticipante: p.nome,
-          rodadaId: rodada.id,
-          rodadaTitulo: rodada.titulo,
-          itens: p.itens,
-          cafezinhosGorjeta: p.cafezinhosGorjeta,
-          valorGorjeta: p.valorGorjeta,
-          valorTotalAPagar: p.valorAPagar,
-          pagamento: dadosPagamento,
-        }),
-      ),
+      participantesComItens
+        .filter((p) => Boolean(p.receberEmailsCafe))
+        .map((p) =>
+          this.mail.enviarFechamentoParticipante({
+            para: p.email,
+            nomeParticipante: p.nome,
+            rodadaId: rodada.id,
+            rodadaTitulo: rodada.titulo,
+            itens: p.itens,
+            cafezinhosGorjeta: p.cafezinhosGorjeta,
+            valorGorjeta: p.valorGorjeta,
+            valorTotalAPagar: p.valorAPagar,
+            pagamento: dadosPagamento,
+          }),
+        ),
     );
     for (const res of resultadosPart) {
       if (res.status === 'fulfilled') participantesEnviados++;
@@ -338,7 +382,7 @@ export class RodadasService {
     }
 
     let organizadorEnviado = false;
-    if (org?.email) {
+    if (org?.email && Boolean(org.receberEmailsCafe)) {
       try {
         await this.mail.enviarFechamentoOrganizador({
           para: org.email,
@@ -853,9 +897,15 @@ export class RodadasService {
       }
     });
 
+    const [prefRow] = await this.db.query<{ receberEmailsCafe: number }>(
+      'SELECT receber_emails_cafe AS receberEmailsCafe FROM usuarios WHERE id = ?',
+      [usuario.id],
+    );
+
     return {
       ano,
       anosDisponiveis,
+      receberEmailsCafe: Boolean(prefRow?.receberEmailsCafe ?? 1),
       totalPedidosAno,
       totalCapsulasConsumidasAno,
       totalCapsulasSolicitadasAno,

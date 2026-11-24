@@ -250,6 +250,7 @@ export interface SaborResumoPainel {
 export interface MeuPainel {
   ano: number;
   anosDisponiveis: number[];
+  receberEmailsCafe: boolean;
   totalPedidosAno: number;
   totalCapsulasConsumidasAno: number;
   totalCapsulasSolicitadasAno: number;

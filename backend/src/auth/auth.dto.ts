@@ -1,4 +1,11 @@
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -84,4 +91,9 @@ export class GoogleAuthDto {
   @MinLength(20)
   @MaxLength(4096)
   credential: string;
+}
+
+export class PreferenciasEmailDto {
+  @IsBoolean()
+  receberEmailsCafe: boolean;
 }

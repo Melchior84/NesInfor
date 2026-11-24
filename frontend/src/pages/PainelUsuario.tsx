@@ -21,6 +21,25 @@ export default function PainelUsuario() {
   const [ano, setAno] = useState<number>(new Date().getFullYear());
   const [dados, setDados] = useState<MeuPainel | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [salvandoPref, setSalvandoPref] = useState(false);
+
+  async function alternarEmails(marcado: boolean) {
+    if (!dados) return;
+    setSalvandoPref(true);
+    try {
+      const r = await api.salvarPreferenciasEmail(marcado);
+      setDados({ ...dados, receberEmailsCafe: r.receberEmailsCafe });
+      toast.ok(
+        r.receberEmailsCafe
+          ? 'Notificações por e-mail ativadas!'
+          : 'Notificações de café por e-mail desativadas.',
+      );
+    } catch (e) {
+      toast.erro(e);
+    } finally {
+      setSalvandoPref(false);
+    }
+  }
 
   const carregar = useCallback(
     async (anoAlvo: number) => {
@@ -82,6 +101,29 @@ export default function PainelUsuario() {
         <p className="text-stone-500">Carregando seu painel…</p>
       ) : (
         <>
+          {/* Preferência de e-mails sobre os cafés */}
+          <section className="card flex flex-wrap items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-stone-300 accent-cafe-600"
+                checked={dados.receberEmailsCafe}
+                disabled={salvandoPref}
+                onChange={(e) => void alternarEmails(e.target.checked)}
+              />
+              <div>
+                <div className="text-sm font-semibold text-stone-800">
+                  🔔 Receber e-mails sobre os cafés
+                </div>
+                <p className="text-xs text-stone-500">
+                  Quando marcado, você recebe avisos quando uma nova rodada de café for aberta e o
+                  resumo do seu pedido ao fechar. Desmarque se não quiser receber nenhum e-mail
+                  sobre os cafés.
+                </p>
+              </div>
+            </label>
+          </section>
+
           {/* KPIs principais */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="card space-y-1">
