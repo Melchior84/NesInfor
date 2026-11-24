@@ -266,7 +266,8 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
                   <th className="py-2">Participante</th>
                   <th className="text-right">Cápsulas</th>
                   <th className="text-right">Solicitado</th>
-                  <th className="text-right">A pagar (caixas fechadas)</th>
+                  <th className="text-right">Caixinha</th>
+                  <th className="text-right">A pagar</th>
                   <th className="pl-4">Pagamento</th>
                 </tr>
               </thead>
@@ -279,6 +280,15 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
                     </td>
                     <td className="text-right">{p.totalCapsulas}</td>
                     <td className="text-right">{moeda(p.totalSolicitado)}</td>
+                    <td className="text-right">
+                      {p.cafezinhosGorjeta > 0 ? (
+                        <span className="text-cafe-700 font-medium">
+                          ☕ {p.cafezinhosGorjeta} ({moeda(p.valorGorjeta)})
+                        </span>
+                      ) : (
+                        <span className="text-stone-400">—</span>
+                      )}
+                    </td>
                     <td className="text-right font-semibold">{moeda(p.valorAPagar)}</td>
                     <td className="pl-4">
                       <div className="flex items-center gap-2">
@@ -304,6 +314,14 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
                 ))}
               </tbody>
             </table>
+            {participantes.totalCafezinhosGorjeta > 0 && (
+              <div className="mt-3 rounded-lg border border-cafe-200 bg-white px-3 py-2 text-xs text-cafe-800">
+                ☕ <strong>Caixinha para o Cafezinho Infor nesta rodada:</strong>{' '}
+                {participantes.totalCafezinhosGorjeta} cafezinho
+                {participantes.totalCafezinhosGorjeta > 1 ? 's' : ''} ·{' '}
+                <strong>{moeda(participantes.totalValorGorjeta)}</strong>
+              </div>
+            )}
           </div>
         )}
       </div>

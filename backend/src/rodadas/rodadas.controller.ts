@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -33,6 +34,21 @@ export class RodadasController {
   @Get('ativa')
   ativa() {
     return this.rodadas.ativa();
+  }
+
+  @Get('ranking-cafezinhos')
+  rankingCafezinhos(@Query('ano') ano?: string) {
+    const parsed = ano ? Number(ano) : undefined;
+    return this.rodadas.rankingCafezinhos(parsed);
+  }
+
+  @Get('meu-painel')
+  meuPainel(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Query('ano') ano?: string,
+  ) {
+    const parsed = ano ? Number(ano) : undefined;
+    return this.rodadas.meuPainel(usuario, parsed);
   }
 
   @Roles('ADMIN')

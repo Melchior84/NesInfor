@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import EsqueciSenha from './pages/EsqueciSenha';
 import Historico from './pages/Historico';
 import Login from './pages/Login';
+import PainelUsuario from './pages/PainelUsuario';
+import RankingCafezinhos from './pages/RankingCafezinhos';
 import RedefinirSenha from './pages/RedefinirSenha';
 import Register from './pages/Register';
 import TrocarSenhaObrigatoria from './pages/TrocarSenhaObrigatoria';
@@ -45,8 +47,10 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
+        <Route path="painel" element={<PainelUsuario />} />
         <Route path="rodadas" element={<Historico />} />
         <Route path="rodadas/:id" element={<Dashboard />} />
+        <Route path="ranking" element={<RankingCafezinhos />} />
         {admin && <Route path="admin/capsulas" element={<AdminCapsulas />} />}
         {admin && <Route path="admin/usuarios" element={<AdminUsuarios />} />}
         <Route path="*" element={<Navigate to="/" replace />} />

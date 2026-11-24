@@ -8,6 +8,12 @@ import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
 import { DatabaseService } from '../database/database.service';
 import { RodadasService } from '../rodadas/rodadas.service';
 
+export const VALOR_CAFEZINHO_GORJETA = 3;
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 @Injectable()
 export class SolicitacoesService {
   constructor(
@@ -22,8 +28,11 @@ export class SolicitacoesService {
       id: number;
       statusPagamento: 'PENDENTE' | 'PAGO';
       dataPagamento: Date | null;
+      cafezinhosGorjeta: number;
+      valorGorjeta: number;
     }>(
-      `SELECT id, status_pagamento AS statusPagamento, data_pagamento AS dataPagamento
+      `SELECT id, status_pagamento AS statusPagamento, data_pagamento AS dataPagamento,
+              cafezinhos_gorjeta AS cafezinhosGorjeta, valor_gorjeta AS valorGorjeta
          FROM solicitacoes WHERE rodada_id = ? AND usuario_id = ?`,
       [rodadaId, usuario.id],
     );
@@ -44,6 +53,13 @@ export class SolicitacoesService {
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
     const totais = calculo.participantes.find((p) => p.usuarioId === usuario.id);
+    const totalEmCaixasFechadas = totais?.totalEmCaixasFechadas ?? 0;
+    const temCaixaFechada = (totais?.capsulasEmCaixas ?? 0) > 0;
+    const cafezinhosGorjeta = Number(sol?.cafezinhosGorjeta ?? 0);
+    const valorGorjeta = Number(sol?.valorGorjeta ?? 0);
+    const gorjetaContabilizada = temCaixaFechada && cafezinhosGorjeta > 0;
+    const valorGorjetaEfetivo = gorjetaContabilizada ? valorGorjeta : 0;
+
     return {
       rodada,
       solicitacaoId: sol?.id ?? null,
@@ -53,8 +69,55 @@ export class SolicitacoesService {
       itens,
       totalCapsulas: totais?.totalCapsulas ?? 0,
       totalSolicitado: totais?.totalSolicitado ?? 0,
-      totalEmCaixasFechadas: totais?.totalEmCaixasFechadas ?? 0,
+      totalEmCaixasFechadas,
+      cafezinhosGorjeta,
+      valorGorjeta,
+      valorPorCafezinho: VALOR_CAFEZINHO_GORJETA,
+      gorjetaContabilizada,
+      valorTotalAPagar: round2(totalEmCaixasFechadas + valorGorjetaEfetivo),
     };
+  }
+
+  async definirGorjeta(
+    rodadaId: number,
+    cafezinhos: number,
+    usuario: UsuarioAutenticado,
+  ) {
+    const valorGorjeta = round2(cafezinhos * VALOR_CAFEZINHO_GORJETA);
+
+    await this.db.transaction(async (tx) => {
+      const [rodada] = await tx.query<{ status: string }>(
+        'SELECT status FROM rodadas_pedido WHERE id = ? FOR UPDATE',
+        [rodadaId],
+      );
+      if (!rodada) throw new NotFoundException('Rodada nao encontrada.');
+      if (rodada.status !== 'ABERTO') {
+        throw new ConflictException(
+          'A rodada nao esta ABERTA: a caixinha nao pode mais ser alterada.',
+        );
+      }
+
+      if (cafezinhos === 0) {
+        await tx.execute(
+          `UPDATE solicitacoes
+              SET cafezinhos_gorjeta = 0, valor_gorjeta = 0
+            WHERE rodada_id = ? AND usuario_id = ?`,
+          [rodadaId, usuario.id],
+        );
+        return;
+      }
+
+      await tx.execute(
+        `INSERT INTO solicitacoes (rodada_id, usuario_id, status_pagamento, cafezinhos_gorjeta, valor_gorjeta, criado_em)
+         VALUES (?, ?, 'PENDENTE', ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE
+           cafezinhos_gorjeta = VALUES(cafezinhos_gorjeta),
+           valor_gorjeta = VALUES(valor_gorjeta)`,
+        [rodadaId, usuario.id, cafezinhos, valorGorjeta],
+      );
+    });
+
+    return this.meuPedido(rodadaId, usuario);
   }
 
   /**

@@ -19,8 +19,14 @@ export default function Layout() {
             <NavLink to="/" end className={link}>
               Rodada ativa
             </NavLink>
+            <NavLink to="/painel" className={link}>
+              Painel
+            </NavLink>
             <NavLink to="/rodadas" end className={link}>
               Histórico
+            </NavLink>
+            <NavLink to="/ranking" className={link}>
+              🏆 Ranking
             </NavLink>
             {admin && (
               <>

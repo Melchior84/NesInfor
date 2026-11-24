@@ -32,6 +32,8 @@ export interface EmailFechamentoParticipanteParams {
   nomeParticipante: string;
   rodadaTitulo: string;
   itens: ItemEmailParticipante[];
+  cafezinhosGorjeta: number;
+  valorGorjeta: number;
   valorTotalAPagar: number;
   pagamento: DadosPagamentoEmail;
 }
@@ -55,9 +57,13 @@ export interface EmailFechamentoOrganizadorParams {
   totalCaixas: number;
   totalCapsulas: number;
   valorCompraNespresso: number;
+  totalCafezinhosGorjeta: number;
+  totalValorGorjeta: number;
   participantes: {
     nome: string;
     email: string;
+    cafezinhosGorjeta: number;
+    valorGorjeta: number;
     valorAPagar: number;
     statusPagamento: 'PENDENTE' | 'PAGO';
     itens: ItemEmailParticipante[];
@@ -355,14 +361,28 @@ export class MailService {
           </div>`
         : '';
 
+    const textoGorjeta =
+      p.cafezinhosGorjeta > 0
+        ? `\n\nCaixinha para o Cafezinho Infor: ${p.cafezinhosGorjeta} cafezinho(s) = ${brl(p.valorGorjeta)}\nMuito obrigado pelo apoio! Sua contribuicao ajuda a manter o Cafezinho Infor no ar.`
+        : '';
+
+    const htmlGorjeta =
+      p.cafezinhosGorjeta > 0
+        ? `<div style="margin-top:12px;padding:10px 12px;border:1px solid #d6c4b0;background:#fdf8f3;border-radius:8px;max-width:540px">
+            <p style="margin:0;color:#583619"><strong>☕ Caixinha para o Cafezinho Infor:</strong> ${p.cafezinhosGorjeta} cafezinho(s) — <strong>${brl(p.valorGorjeta)}</strong></p>
+            <p style="margin:4px 0 0 0;font-size:12px;color:#78716c">Muito obrigado pelo carinho! Sua contribuição ajuda a custear servidor, domínio e melhorias do Cafezinho Infor.</p>
+          </div>`
+        : '';
+
     await this.enviar({
       para: p.para,
       assunto: `Pedido fechado: ${p.rodadaTitulo} - Cafezinho Infor`,
       texto:
         `Ola ${p.nomeParticipante}!\n\n` +
         `A rodada "${p.rodadaTitulo}" foi fechada.\n\n` +
-        `Seus pedidos confirmados (em caixas fechadas):\n${textoConfirmados}\n\n` +
-        `Total a pagar: ${brl(p.valorTotalAPagar)}` +
+        `Seus pedidos confirmados (em caixas fechadas):\n${textoConfirmados}` +
+        textoGorjeta +
+        `\n\nTotal a pagar: ${brl(p.valorTotalAPagar)}` +
         textoNaoFechados +
         textoPagamento,
       html: `
@@ -370,6 +390,7 @@ export class MailService {
         <p>A rodada <strong>${escapeHtml(p.rodadaTitulo)}</strong> foi fechada. Confira abaixo o resumo do seu pedido:</p>
         <h3 style="color:#583619">Pedidos confirmados (em caixas fechadas)</h3>
         ${htmlConfirmados}
+        ${htmlGorjeta}
         <p style="font-size:16px;margin-top:12px"><strong>Total a pagar: ${brl(p.valorTotalAPagar)}</strong></p>
         ${htmlNaoFechados}
         ${htmlPagamento}
@@ -408,7 +429,11 @@ export class MailService {
             return `  * ${i.sabor}: ${partes.join(', ')}`;
           })
           .join('\n');
-        return `- ${part.nome} (${part.email}) | A pagar: ${brl(part.valorAPagar)} [${part.statusPagamento}]\n${itensStr}`;
+        const gorjetaStr =
+          part.cafezinhosGorjeta > 0
+            ? ` | Caixinha: ${part.cafezinhosGorjeta}x (${brl(part.valorGorjeta)})`
+            : '';
+        return `- ${part.nome} (${part.email}) | A pagar: ${brl(part.valorAPagar)}${gorjetaStr} [${part.statusPagamento}]\n${itensStr}`;
       })
       .join('\n');
 
@@ -451,7 +476,11 @@ export class MailService {
             (part) => `<div style="margin-bottom:12px;padding:10px;border:1px solid #e7e5e4;border-radius:6px;max-width:620px">
               <div style="font-size:14px">
                 <strong>${escapeHtml(part.nome)}</strong> (${escapeHtml(part.email)}) —
-                <strong>A pagar: ${brl(part.valorAPagar)}</strong> (${part.statusPagamento})
+                <strong>A pagar: ${brl(part.valorAPagar)}</strong>${
+                  part.cafezinhosGorjeta > 0
+                    ? ` <span style="color:#7c4a1d">(inclui ${part.cafezinhosGorjeta} cafezinho(s): ${brl(part.valorGorjeta)})</span>`
+                    : ''
+                } (${part.statusPagamento})
               </div>
               <ul style="margin:6px 0 0 0;padding-left:18px;font-size:13px">
                 ${part.itens
@@ -473,6 +502,18 @@ export class MailService {
           .join('')
       : '<p><em>Nenhum participante fez pedido.</em></p>';
 
+    const textoCaixinhaOrg =
+      p.totalCafezinhosGorjeta > 0
+        ? `\n\nCAIXINHA PARA O CAFEZINHO INFOR: ${p.totalCafezinhosGorjeta} cafezinho(s) = ${brl(p.totalValorGorjeta)}`
+        : '';
+
+    const htmlCaixinhaOrg =
+      p.totalCafezinhosGorjeta > 0
+        ? `<div style="margin-top:16px;padding:10px 12px;border:1px solid #d6c4b0;background:#fdf8f3;border-radius:8px;max-width:620px">
+            <strong>☕ Caixinha para o Cafezinho Infor nesta rodada:</strong> ${p.totalCafezinhosGorjeta} cafezinho(s) — <strong>${brl(p.totalValorGorjeta)}</strong>
+          </div>`
+        : '';
+
     await this.enviar({
       para: p.para,
       assunto: `[Organizador] Detalhamento da rodada fechada: ${p.rodadaTitulo} - Cafezinho Infor`,
@@ -480,6 +521,7 @@ export class MailService {
         `Ola ${p.nomeOrganizador}!\n\n` +
         `A rodada "${p.rodadaTitulo}" foi fechada.\n\n` +
         `RESUMO PARA COMPRA NA NESPRESSO (${p.totalCaixas} caixas / ${p.totalCapsulas} capsulas / ${brl(p.valorCompraNespresso)}):\n${textoCaixas}` +
+        textoCaixinhaOrg +
         textoNaoFechados +
         `\n\nDETALHAMENTO POR PARTICIPANTE:\n${textoParticipantes || '- Nenhum participante.'}`,
       html: `
@@ -487,6 +529,7 @@ export class MailService {
         <p>A rodada <strong>${escapeHtml(p.rodadaTitulo)}</strong> foi fechada. Segue o detalhamento completo para a compra e controle de pagamentos:</p>
         <h3 style="color:#583619">Resumo para compra na Nespresso (caixas fechadas)</h3>
         ${htmlCaixas}
+        ${htmlCaixinhaOrg}
         ${
           p.naoFecharam.length
             ? `<h3 style="color:#b45309;margin-top:16px">Sobras / sabores fora da compra</h3>

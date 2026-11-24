@@ -87,6 +87,8 @@ export async function garantirSchema(
       usuario_id INT NOT NULL,
       status_pagamento ENUM('PENDENTE', 'PAGO') NOT NULL DEFAULT 'PENDENTE',
       data_pagamento DATETIME NULL,
+      cafezinhos_gorjeta TINYINT UNSIGNED NOT NULL DEFAULT 0,
+      valor_gorjeta DECIMAL(10,2) NOT NULL DEFAULT 0.00,
       criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       UNIQUE KEY uq_solicitacao_rodada_usuario (rodada_id, usuario_id),
@@ -191,6 +193,28 @@ export async function garantirSchema(
       `ALTER TABLE usuarios ADD COLUMN aprovado TINYINT(1) NOT NULL DEFAULT 1 AFTER email_verificado`,
     );
     logger.log(`Coluna usuarios.aprovado adicionada (banco ${dbName}).`);
+  }
+
+  const [solCols] = await pool.execute(
+    `SELECT COLUMN_NAME AS nome
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'solicitacoes'`,
+    [dbName],
+  );
+  const solExistentes = new Set(
+    (solCols as { nome: string }[]).map((c) => c.nome),
+  );
+  if (!solExistentes.has('cafezinhos_gorjeta')) {
+    await pool.query(
+      `ALTER TABLE solicitacoes ADD COLUMN cafezinhos_gorjeta TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER data_pagamento`,
+    );
+    logger.log(`Coluna solicitacoes.cafezinhos_gorjeta adicionada (banco ${dbName}).`);
+  }
+  if (!solExistentes.has('valor_gorjeta')) {
+    await pool.query(
+      `ALTER TABLE solicitacoes ADD COLUMN valor_gorjeta DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER cafezinhos_gorjeta`,
+    );
+    logger.log(`Coluna solicitacoes.valor_gorjeta adicionada (banco ${dbName}).`);
   }
 
   await pool.query(`

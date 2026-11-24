@@ -12,7 +12,11 @@ import {
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RodadaOrganizadorGuard } from '../common/guards/rodada-organizador.guard';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
-import { AlterarPagamentoDto, DefinirQuantidadeDto } from './solicitacoes.dto';
+import {
+  AlterarPagamentoDto,
+  DefinirGorjetaDto,
+  DefinirQuantidadeDto,
+} from './solicitacoes.dto';
 import { SolicitacoesService } from './solicitacoes.service';
 
 @Controller('rodadas/:id')
@@ -44,6 +48,15 @@ export class SolicitacoesController {
     @CurrentUser() usuario: UsuarioAutenticado,
   ) {
     return this.solicitacoes.definirQuantidade(id, capsulaId, 0, usuario);
+  }
+
+  @Put('meu-pedido/gorjeta')
+  definirGorjeta(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: DefinirGorjetaDto,
+    @CurrentUser() usuario: UsuarioAutenticado,
+  ) {
+    return this.solicitacoes.definirGorjeta(id, dto.cafezinhos, usuario);
   }
 
   @UseGuards(RodadaOrganizadorGuard)

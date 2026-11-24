@@ -124,6 +124,8 @@ export interface ParticipanteRodada {
   email: string;
   statusPagamento: StatusPagamento;
   dataPagamento: string | null;
+  cafezinhosGorjeta: number;
+  valorGorjeta: number;
   totalCapsulas: number;
   capsulasEmCaixas: number;
   totalSolicitado: number;
@@ -135,6 +137,8 @@ export interface Participantes {
   rodada: Rodada;
   participantes: ParticipanteRodada[];
   resumo: ResumoColetivo;
+  totalCafezinhosGorjeta: number;
+  totalValorGorjeta: number;
 }
 
 export interface ItemPedido {
@@ -159,6 +163,11 @@ export interface MeuPedido {
   totalCapsulas: number;
   totalSolicitado: number;
   totalEmCaixasFechadas: number;
+  cafezinhosGorjeta: number;
+  valorGorjeta: number;
+  valorPorCafezinho: number;
+  gorjetaContabilizada: boolean;
+  valorTotalAPagar: number;
 }
 
 export interface ParticipanteSorteio {
@@ -201,4 +210,79 @@ export interface SorteioRodada {
   elegiveisRodada: ParticipanteSorteio[];
   usuariosDisponiveis: { id: number; nome: string }[];
   brindes: BrindeRodada[];
+}
+
+export interface ItemRankingCafezinho {
+  posicao: number;
+  usuarioId: number;
+  nome: string;
+  totalCafezinhos: number;
+  rodadasApoiadas: number;
+}
+
+export interface RankingCafezinhos {
+  ano: number;
+  anosDisponiveis: number[];
+  totalCafezinhosAno: number;
+  totalDoadores: number;
+  ranking: ItemRankingCafezinho[];
+}
+
+export interface SaborResumoPainel {
+  capsulaId: number;
+  nome: string;
+  quantidade: number;
+  imagemUrl: string | null;
+  descricao: string | null;
+  intensidade: number | null;
+}
+
+export interface MeuPainel {
+  ano: number;
+  anosDisponiveis: number[];
+  totalPedidosAno: number;
+  totalCapsulasConsumidasAno: number;
+  totalCapsulasSolicitadasAno: number;
+  valorInvestidoAno: number;
+  mediaCapsulasPorPedido: number;
+  cafezinhosDoadosAno: number;
+  posicaoRanking: number | null;
+  sorteios: {
+    jaFoiSorteado: boolean;
+    vezesTotal: number;
+    vezesNoAno: number;
+    ultimoSorteio: {
+      brindeNome: string;
+      rodadaId: number;
+      rodadaTitulo: string;
+      sorteadoEm: string;
+    } | null;
+  };
+  saborPreferido: SaborResumoPainel | null;
+  topSabores: SaborResumoPainel[];
+  saborNovidade: {
+    capsulaId: number;
+    nome: string;
+    descricao: string | null;
+    imagemUrl: string | null;
+    intensidade: number | null;
+    precoAtual: number;
+    criadoEm: string;
+    jaExperimentou: boolean;
+  } | null;
+  variedade: {
+    saboresProvados: number;
+    totalSaboresAtivos: number;
+  };
+  intensidadeMedia: number | null;
+  ultimasRodadas: {
+    rodadaId: number;
+    titulo: string;
+    status: StatusRodada;
+    statusPagamento: StatusPagamento;
+    dataAbertura: string;
+    capsulasConfirmadas: number;
+    capsulasSolicitadas: number;
+    valorAPagar: number;
+  }[];
 }

@@ -2,11 +2,13 @@ import type {
   Capsula,
   DadosPagamento,
   HistoricoPreco,
+  MeuPainel,
   MeuPedido,
   NotificacoesFechamento,
   Painel,
   Participantes,
   Perfil,
+  RankingCafezinhos,
   Rodada,
   ResumoCompra,
   SorteioRodada,
@@ -173,6 +175,14 @@ export const api = {
   // rodadas
   rodadas: () => get<Rodada[]>('/rodadas'),
   rodadaAtiva: () => get<Rodada | null>('/rodadas/ativa'),
+  rankingCafezinhos: (ano?: number) =>
+    get<RankingCafezinhos>(
+      ano ? `/rodadas/ranking-cafezinhos?ano=${encodeURIComponent(ano)}` : '/rodadas/ranking-cafezinhos',
+    ),
+  meuPainel: (ano?: number) =>
+    get<MeuPainel>(
+      ano ? `/rodadas/meu-painel?ano=${encodeURIComponent(ano)}` : '/rodadas/meu-painel',
+    ),
   rodada: (id: number) => get<Rodada>(`/rodadas/${id}`),
   criarRodada: (titulo: string, assumirOrganizacao: boolean, organizadorId?: number | null) =>
     post<Rodada>('/rodadas', {
@@ -199,6 +209,8 @@ export const api = {
     put<MeuPedido>(`/rodadas/${id}/meu-pedido/itens/${capsulaId}`, { quantidade }),
   removerItem: (id: number, capsulaId: number) =>
     request<MeuPedido>('DELETE', `/rodadas/${id}/meu-pedido/itens/${capsulaId}`),
+  definirGorjeta: (id: number, cafezinhos: number) =>
+    put<MeuPedido>(`/rodadas/${id}/meu-pedido/gorjeta`, { cafezinhos }),
 
   // brindes / sorteio
   brindes: (rodadaId: number) => get<SorteioRodada>(`/rodadas/${rodadaId}/brindes`),

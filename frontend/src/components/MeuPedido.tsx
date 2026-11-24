@@ -90,6 +90,33 @@ export default function MeuPedido({ rodadaId, pedido, capsulas, onChange }: Prop
     }
   }
 
+  async function definirGorjeta(cafezinhos: number) {
+    if (cafezinhos === pedido.cafezinhosGorjeta) return;
+    setOcupado(true);
+    try {
+      onChange(await api.definirGorjeta(rodadaId, cafezinhos));
+      if (cafezinhos > 0) {
+        toast.ok(
+          `Obrigado! ${cafezinhos} cafezinho${cafezinhos > 1 ? 's' : ''} adicionado${cafezinhos > 1 ? 's' : ''} à caixinha para o Cafezinho Infor ☕`,
+        );
+      } else {
+        toast.ok('Caixinha removida do seu pedido.');
+      }
+    } catch (e) {
+      toast.erro(e);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  const valorCafezinho = pedido.valorPorCafezinho || 3;
+  const opcoesGorjeta = [
+    { qtd: 0, rotulo: 'Nenhum', icones: '—', valor: 0 },
+    { qtd: 1, rotulo: '1 café', icones: '☕', valor: valorCafezinho },
+    { qtd: 2, rotulo: '2 cafés', icones: '☕☕', valor: valorCafezinho * 2 },
+    { qtd: 3, rotulo: '3 cafés', icones: '☕☕☕', valor: valorCafezinho * 3 },
+  ];
+
   return (
     <section className="card space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -198,20 +225,100 @@ export default function MeuPedido({ rodadaId, pedido, capsulas, onChange }: Prop
         )}
       </div>
 
-      <div className="grid gap-2 rounded-lg bg-cafe-50 p-3 text-sm sm:grid-cols-3">
+      {/* Caixinha / gorjeta Studios Melk */}
+      {(editavel || pedido.cafezinhosGorjeta > 0) && (
+        <div className="rounded-xl border border-cafe-200 bg-gradient-to-br from-cafe-50/80 to-amber-50/50 p-4 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-cafe-800">
+                ☕ Caixinha para o Cafezinho Infor
+              </h3>
+              <p className="text-xs text-stone-600">
+                Curtiu o Cafezinho Infor? Pague um cafezinho de{' '}
+                <strong>{moeda(valorCafezinho)}</strong> para ajudar a custear o servidor, domínio e
+                manutenção do site.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {opcoesGorjeta.map((op) => {
+              const selecionado = pedido.cafezinhosGorjeta === op.qtd;
+              return (
+                <button
+                  key={op.qtd}
+                  type="button"
+                  disabled={!editavel || ocupado}
+                  onClick={() => void definirGorjeta(op.qtd)}
+                  className={`flex flex-col items-center justify-center rounded-lg border px-3 py-2 text-center transition ${
+                    selecionado
+                      ? 'border-cafe-600 bg-cafe-600 text-white shadow-sm'
+                      : 'border-stone-200 bg-white text-stone-700 hover:border-cafe-300 hover:bg-cafe-50/60'
+                  } disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <span className="text-base leading-tight">{op.icones}</span>
+                  <span className="mt-0.5 text-xs font-semibold">{op.rotulo}</span>
+                  <span
+                    className={`text-[11px] ${
+                      selecionado ? 'text-cafe-100' : 'text-stone-500'
+                    }`}
+                  >
+                    {op.valor === 0 ? moeda(0) : `+ ${moeda(op.valor)}`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {pedido.cafezinhosGorjeta > 0 && (
+            <div className="rounded-lg bg-white/80 px-3 py-2 text-xs text-cafe-800 border border-cafe-200/70">
+              ❤️ <strong>Muito obrigado pelo carinho!</strong>{' '}
+              {pedido.cafezinhosGorjeta === 1
+                ? 'Seu cafezinho'
+                : `Seus ${pedido.cafezinhosGorjeta} cafezinhos`}{' '}
+              (<strong>+ {moeda(pedido.valorGorjeta)}</strong>) ajuda
+              {pedido.cafezinhosGorjeta > 1 ? 'm' : ''} os <strong>Studios Melk</strong> a manter o
+              site sempre no ar — e só é cobrado se pelo menos um sabor do seu pedido fechar caixa.
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid gap-2 rounded-lg bg-cafe-50 p-3 text-sm sm:grid-cols-4">
         <div>
           <div className="text-xs text-stone-500">Cápsulas pedidas</div>
           <div className="text-lg font-semibold">{totalCapsulas}</div>
         </div>
         <div>
           <div className="text-xs text-stone-500">Total solicitado</div>
-          <div className="text-lg font-semibold">{moeda(totalSolicitado)}</div>
+          <div className="text-lg font-semibold">
+            {moeda(totalSolicitado + pedido.valorGorjeta)}
+          </div>
+          {pedido.valorGorjeta > 0 && (
+            <div className="text-[11px] text-cafe-700">
+              inclui {moeda(pedido.valorGorjeta)} caixinha ({pedido.cafezinhosGorjeta}☕)
+            </div>
+          )}
         </div>
         <div>
-          <div className="text-xs text-stone-500">Total em caixas fechadas (a pagar)</div>
-          <div className="text-lg font-semibold text-cafe-700">
-            {moeda(pedido.totalEmCaixasFechadas)}
+          <div className="text-xs text-stone-500">Caixas fechadas</div>
+          <div className="text-lg font-semibold">{moeda(pedido.totalEmCaixasFechadas)}</div>
+        </div>
+        <div>
+          <div className="text-xs text-stone-500">Total a pagar</div>
+          <div className="text-lg font-bold text-cafe-700">
+            {moeda(pedido.valorTotalAPagar)}
           </div>
+          {pedido.cafezinhosGorjeta > 0 && !pedido.gorjetaContabilizada && (
+            <div className="text-[11px] text-stone-500">
+              Caixinha só entra se fechar caixa
+            </div>
+          )}
+          {pedido.gorjetaContabilizada && (
+            <div className="text-[11px] text-cafe-700">
+              inclui {moeda(pedido.valorGorjeta)} caixinha ({pedido.cafezinhosGorjeta}☕)
+            </div>
+          )}
         </div>
       </div>
     </section>
