@@ -8,11 +8,19 @@ import {
   type ReactNode,
 } from 'react';
 import { api, setUnauthorizedHandler, tokenStore } from '../lib/api';
-import type { Usuario } from '../types';
+import type { Tema, Usuario } from '../types';
+
+const TEMA_KEY = 'nesinfor.tema';
+
+function lerTemaInicial(): Tema {
+  return localStorage.getItem(TEMA_KEY) === 'escuro' ? 'escuro' : 'claro';
+}
 
 interface AuthCtx {
   usuario: Usuario | null;
   carregando: boolean;
+  tema: Tema;
+  alternarTema: () => Promise<void>;
   login: (email: string, senha: string) => Promise<void>;
   entrarComGoogle: (
     credential: string,
@@ -27,6 +35,32 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(!!tokenStore.get());
+  const [tema, setTema] = useState<Tema>(lerTemaInicial);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', tema === 'escuro');
+    localStorage.setItem(TEMA_KEY, tema);
+  }, [tema]);
+
+  const aplicarUsuario = useCallback((u: Usuario | null) => {
+    setUsuario(u);
+    if (u?.tema) {
+      setTema(u.tema);
+    }
+  }, []);
+
+  const alternarTema = useCallback(async () => {
+    const novo: Tema = tema === 'escuro' ? 'claro' : 'escuro';
+    setTema(novo);
+    if (usuario) {
+      setUsuario({ ...usuario, tema: novo });
+      try {
+        await api.salvarTema(novo);
+      } catch {
+        // Mantem preferencia local caso ocorra erro transitorio de rede
+      }
+    }
+  }, [tema, usuario]);
 
   const sair = useCallback(() => {
     tokenStore.clear();
@@ -38,34 +72,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!tokenStore.get()) return;
     api
       .me()
-      .then(setUsuario)
+      .then(aplicarUsuario)
       .catch(() => tokenStore.clear())
       .finally(() => setCarregando(false));
-  }, [sair]);
+  }, [sair, aplicarUsuario]);
 
   const value = useMemo<AuthCtx>(
     () => ({
       usuario,
       carregando,
+      tema,
+      alternarTema,
       sair,
-      atualizarUsuario: setUsuario,
+      atualizarUsuario: aplicarUsuario,
       login: async (email, senha) => {
         const r = await api.login(email, senha);
         tokenStore.set(r.token);
-        setUsuario(r.usuario);
+        aplicarUsuario(r.usuario);
       },
       entrarComGoogle: async (credential) => {
         const r = await api.loginGoogle(credential);
         if ('token' in r) {
           tokenStore.set(r.token);
-          setUsuario(r.usuario);
+          aplicarUsuario(r.usuario);
           return { entrou: true };
         }
         return { entrou: false, mensagem: r.mensagem, email: r.email };
       },
       registrar: (nome, email, senha) => api.register(nome, email, senha),
     }),
-    [usuario, carregando, sair],
+    [usuario, carregando, tema, alternarTema, sair, aplicarUsuario],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

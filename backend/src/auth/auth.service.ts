@@ -26,6 +26,7 @@ interface UsuarioRow {
   email_verificado: number;
   aprovado: number;
   deve_trocar_senha: number;
+  tema: 'claro' | 'escuro' | null;
 }
 
 type TipoToken = 'CONFIRMACAO_EMAIL' | 'RECUPERACAO_SENHA';
@@ -198,7 +199,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const email = dto.email.trim().toLowerCase();
     const [row] = await this.db.query<UsuarioRow>(
-      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha
+      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
          FROM usuarios WHERE email = ?`,
       [email],
     );
@@ -225,6 +226,7 @@ export class AuthService {
       email: row.email,
       perfil: row.perfil,
       deveTrocarSenha: Boolean(row.deve_trocar_senha),
+      tema: row.tema === 'escuro' ? 'escuro' : 'claro',
     };
     return { token: await this.assinar(usuario), usuario };
   }
@@ -257,7 +259,7 @@ export class AuthService {
     const nome = (payload.name?.trim() || email.split('@')[0]).slice(0, 120);
 
     const [existente] = await this.db.query<UsuarioRow>(
-      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha
+      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
          FROM usuarios WHERE email = ?`,
       [email],
     );
@@ -283,6 +285,7 @@ export class AuthService {
         email: existente.email,
         perfil: existente.perfil,
         deveTrocarSenha: Boolean(existente.deve_trocar_senha),
+        tema: existente.tema === 'escuro' ? 'escuro' : 'claro',
       };
       return { token: await this.assinar(usuario), usuario };
     }
@@ -317,6 +320,7 @@ export class AuthService {
         email,
         perfil: 'USUARIO',
         deveTrocarSenha: false,
+        tema: 'claro',
       };
       return { token: await this.assinar(usuario), usuario };
     }
@@ -445,6 +449,16 @@ export class AuthService {
       [receberEmailsCafe ? 1 : 0, usuarioId],
     );
     return { receberEmailsCafe };
+  }
+
+  async salvarTema(usuarioId: number, tema: 'claro' | 'escuro') {
+    await this.db.execute(
+      `UPDATE usuarios
+          SET tema = ?, atualizado_em = NOW()
+        WHERE id = ?`,
+      [tema, usuarioId],
+    );
+    return { tema };
   }
 
   private async criarToken(

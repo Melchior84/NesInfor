@@ -7,7 +7,7 @@ const link = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export default function Layout() {
-  const { usuario, sair } = useAuth();
+  const { usuario, sair, tema, alternarTema } = useAuth();
   const admin = usuario?.perfil === 'ADMIN';
 
   return (
@@ -39,7 +39,20 @@ export default function Layout() {
               </>
             )}
           </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 text-sm">
+            <button
+              type="button"
+              onClick={() => void alternarTema()}
+              className="btn-secondary btn-sm"
+              title={
+                tema === 'escuro'
+                  ? 'Alternar para tema claro'
+                  : 'Alternar para tema escuro'
+              }
+              aria-label="Alternar tema claro e escuro"
+            >
+              {tema === 'escuro' ? '☀️ Claro' : '🌙 Escuro'}
+            </button>
             <span className="text-stone-600">
               {usuario?.nome}
               {admin && (

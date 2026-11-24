@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -96,4 +97,9 @@ export class GoogleAuthDto {
 export class PreferenciasEmailDto {
   @IsBoolean()
   receberEmailsCafe: boolean;
+}
+
+export class TemaDto {
+  @IsIn(['claro', 'escuro'])
+  tema: 'claro' | 'escuro';
 }

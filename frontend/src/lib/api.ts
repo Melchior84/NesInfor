@@ -14,6 +14,7 @@ import type {
   SorteioRodada,
   StatusPagamento,
   StatusRodada,
+  Tema,
   Usuario,
   UsuarioAdmin,
 } from '../types';
@@ -109,6 +110,7 @@ export const api = {
     put<DadosPagamento>('/auth/dados-pagamento', d),
   salvarPreferenciasEmail: (receberEmailsCafe: boolean) =>
     put<{ receberEmailsCafe: boolean }>('/auth/preferencias-email', { receberEmailsCafe }),
+  salvarTema: (tema: Tema) => put<{ tema: Tema }>('/auth/tema', { tema }),
 
   // cápsulas
   capsulas: (somenteAtivas = false) =>

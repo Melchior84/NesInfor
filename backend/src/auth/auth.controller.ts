@@ -13,6 +13,7 @@ import {
   PreferenciasEmailDto,
   RedefinirSenhaDto,
   RegisterDto,
+  TemaDto,
   TrocarSenhaObrigatoriaDto,
 } from './auth.dto';
 import { AuthService } from './auth.service';
@@ -117,5 +118,13 @@ export class AuthController {
     @Body() dto: PreferenciasEmailDto,
   ) {
     return this.auth.salvarPreferenciasEmail(usuario.id, dto.receberEmailsCafe);
+  }
+
+  @Put('tema')
+  salvarTema(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() dto: TemaDto,
+  ) {
+    return this.auth.salvarTema(usuario.id, dto.tema);
   }
 }

@@ -53,8 +53,9 @@ export class JwtAuthGuard implements CanActivate {
       email_verificado: number;
       aprovado: number;
       deve_trocar_senha: number;
+      tema: 'claro' | 'escuro' | null;
     }>(
-      `SELECT id, nome, email, perfil, ativo, email_verificado, aprovado, deve_trocar_senha
+      `SELECT id, nome, email, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
          FROM usuarios WHERE id = ?`,
       [payload.sub],
     );
@@ -89,6 +90,7 @@ export class JwtAuthGuard implements CanActivate {
       email: usuario.email,
       perfil: usuario.perfil,
       deveTrocarSenha,
+      tema: usuario.tema === 'escuro' ? 'escuro' : 'claro',
     } satisfies UsuarioAutenticado;
     return true;
   }

@@ -6,6 +6,11 @@
     <meta name="author" content="Studios Melk" />
     <meta name="description" content="Cafezinho Infor — Pedidos coletivos Nespresso. Desenvolvido por Studios Melk." />
     <title>Cafezinho Infor · Pedidos coletivos Nespresso</title>
+    <script>
+      if (localStorage.getItem('nesinfor.tema') === 'escuro') {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,4 +1,5 @@
 export type Perfil = 'ADMIN' | 'USUARIO';
+export type Tema = 'claro' | 'escuro';
 export type StatusRodada = 'ABERTO' | 'FECHADO' | 'COMPRADO' | 'ENTREGUE' | 'CANCELADO';
 export type StatusPagamento = 'PENDENTE' | 'PAGO';
 export type StatusSabor = 'FECHADA' | 'COM_SOBRA' | 'AGUARDANDO_COMPLETAR';
@@ -9,6 +10,7 @@ export interface Usuario {
   email: string;
   perfil: Perfil;
   deveTrocarSenha: boolean;
+  tema?: Tema;
 }
 
 export interface UsuarioAdmin extends Usuario {
