@@ -822,6 +822,37 @@ export class RodadasService {
     const minhaPosicaoRanking =
       rankingRes.ranking.find((r) => r.usuarioId === usuario.id)?.posicao ?? null;
 
+    // Ranking anual de quantidade de capsulas solicitadas (para colocacao no Painel)
+    const consumoAnoRows = await this.db.query<{
+      usuarioId: number;
+      totalCapsulas: number;
+    }>(
+      `SELECT s.usuario_id AS usuarioId, SUM(i.quantidade) AS totalCapsulas
+         FROM itens_solicitacao i
+         JOIN solicitacoes s ON s.id = i.solicitacao_id
+         JOIN rodadas_pedido r ON r.id = s.rodada_id
+        WHERE r.status <> 'CANCELADO'
+          AND YEAR(COALESCE(r.data_fechamento, r.data_abertura)) = ?
+        GROUP BY s.usuario_id
+       HAVING totalCapsulas > 0
+        ORDER BY totalCapsulas DESC, s.usuario_id ASC`,
+      [ano],
+    );
+
+    let posicaoConsumo: number | null = null;
+    let posAtual = 0;
+    let anteriorTotal: number | null = null;
+    consumoAnoRows.forEach((row, idx) => {
+      const qtd = Number(row.totalCapsulas);
+      if (anteriorTotal === null || qtd < anteriorTotal) {
+        posAtual = idx + 1;
+        anteriorTotal = qtd;
+      }
+      if (row.usuarioId === usuario.id) {
+        posicaoConsumo = posAtual;
+      }
+    });
+
     return {
       ano,
       anosDisponiveis,
@@ -839,6 +870,11 @@ export class RodadasService {
           : 0,
       cafezinhosDoadosAno,
       posicaoRanking: minhaPosicaoRanking,
+      rankingConsumo: {
+        posicao: posicaoConsumo,
+        totalParticipantes: consumoAnoRows.length,
+        totalCapsulasSolicitadas: totalCapsulasSolicitadasAno,
+      },
       sorteios: {
         jaFoiSorteado: sorteiosGanhos.length > 0,
         vezesTotal: sorteiosGanhos.length,

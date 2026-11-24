@@ -257,6 +257,11 @@ export interface MeuPainel {
   mediaCapsulasPorPedido: number;
   cafezinhosDoadosAno: number;
   posicaoRanking: number | null;
+  rankingConsumo: {
+    posicao: number | null;
+    totalParticipantes: number;
+    totalCapsulasSolicitadas: number;
+  };
   sorteios: {
     jaFoiSorteado: boolean;
     vezesTotal: number;

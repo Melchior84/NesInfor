@@ -143,6 +143,56 @@ export default function PainelUsuario() {
             </div>
           </div>
 
+          {/* Colocação anual em pedidos de café */}
+          <section className="rounded-xl border border-cafe-200 bg-gradient-to-r from-cafe-50 via-amber-50/50 to-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cafe-100 text-2xl">
+                  {dados.rankingConsumo.posicao === 1
+                    ? '🥇'
+                    : dados.rankingConsumo.posicao === 2
+                      ? '🥈'
+                      : dados.rankingConsumo.posicao === 3
+                        ? '🥉'
+                        : '☕'}
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-cafe-600">
+                    Colocação em pedidos de café ({ano})
+                  </div>
+                  {dados.rankingConsumo.posicao !== null ? (
+                    <>
+                      <p className="text-base text-stone-800">
+                        Neste ano você está na posição{' '}
+                        <strong className="text-lg text-cafe-700">
+                          {dados.rankingConsumo.posicao}º
+                        </strong>{' '}
+                        em pedidos de café!
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        {dados.rankingConsumo.totalCapsulasSolicitadas} cápsula
+                        {dados.rankingConsumo.totalCapsulasSolicitadas === 1 ? '' : 's'} solicitada
+                        {dados.rankingConsumo.totalCapsulasSolicitadas === 1 ? '' : 's'} entre{' '}
+                        {dados.rankingConsumo.totalParticipantes} participante
+                        {dados.rankingConsumo.totalParticipantes === 1 ? '' : 's'} ·{' '}
+                        {dados.rankingConsumo.posicao === 1
+                          ? 'Líder absoluto da cafeína!'
+                          : dados.rankingConsumo.posicao <= 3
+                            ? 'Pódio garantido na cafeína!'
+                            : 'Bora pedir mais umas cápsulas para subir no ranking!'}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-stone-500">
+                      Você ainda não entrou no ranking de pedidos de café em {ano} — faça seu
+                      primeiro pedido!
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Sabor preferido + Sabor novidade */}
           <div className="grid gap-4 md:grid-cols-2">
             <section className="card flex flex-col justify-between space-y-3">
