@@ -21,8 +21,18 @@ export default function NovaRodadaForm({ onCriada }: { onCriada: (r: Rodada) => 
       .catch(() => {});
   }, []);
 
+  const qtdAlertados = usuarios.filter(
+    (u) => u.ativo && u.aprovado && u.emailVerificado && u.receberEmailsCafe !== false,
+  ).length;
+
   async function enviar(e: FormEvent) {
     e.preventDefault();
+    const msgConfirmacao =
+      qtdAlertados > 0
+        ? `Abrir a rodada "${titulo.trim()}" agora?\n\nAtenção: um e-mail de aviso será disparado para ${qtdAlertados} usuário${qtdAlertados === 1 ? '' : 's'} com notificações ativas.`
+        : `Abrir a rodada "${titulo.trim()}" agora?\n\nNenhum usuário está com notificações de e-mail ativas no momento.`;
+    if (!confirm(msgConfirmacao)) return;
+
     setEnviando(true);
     try {
       const orgId = organizadorId ? Number(organizadorId) : null;
@@ -85,9 +95,17 @@ export default function NovaRodadaForm({ onCriada }: { onCriada: (r: Rodada) => 
         O organizador escolhido terá acesso completo ao Painel do organizador, fechamento da
         rodada, controle de pagamentos e sorteio de brindes desta rodada.
       </p>
-      <button className="btn-primary" disabled={enviando}>
-        {enviando ? 'Abrindo…' : 'Abrir rodada'}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button className="btn-primary" disabled={enviando}>
+          {enviando ? 'Abrindo…' : 'Abrir rodada'}
+        </button>
+        {usuarios.length > 0 && (
+          <span className="text-xs text-stone-500">
+            📧 {qtdAlertados} usuário{qtdAlertados === 1 ? '' : 's'} receberá
+            {qtdAlertados === 1 ? '' : 'ão'} aviso por e-mail
+          </span>
+        )}
+      </div>
     </form>
   );
 }

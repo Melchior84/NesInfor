@@ -42,12 +42,14 @@ export class UsuariosService {
       emailVerificado: number;
       aprovado: number;
       deveTrocarSenha: number;
+      receberEmailsCafe: number;
       criadoEm: Date;
     }>(
       `SELECT id, nome, email, perfil, (ativo = 1) AS ativo,
               (email_verificado = 1) AS emailVerificado,
               (aprovado = 1) AS aprovado,
               (deve_trocar_senha = 1) AS deveTrocarSenha,
+              (receber_emails_cafe = 1) AS receberEmailsCafe,
               criado_em AS criadoEm
          FROM usuarios ORDER BY aprovado ASC, nome ASC`,
     );
@@ -57,6 +59,7 @@ export class UsuariosService {
       emailVerificado: Boolean(u.emailVerificado),
       aprovado: Boolean(u.aprovado),
       deveTrocarSenha: Boolean(u.deveTrocarSenha),
+      receberEmailsCafe: Boolean(u.receberEmailsCafe),
     }));
   }
 

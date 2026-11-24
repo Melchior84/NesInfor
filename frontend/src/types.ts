@@ -17,6 +17,7 @@ export interface UsuarioAdmin extends Usuario {
   ativo: boolean;
   emailVerificado: boolean;
   aprovado: boolean;
+  receberEmailsCafe?: boolean;
   criadoEm: string;
 }
 
