@@ -67,6 +67,7 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
         conta: conta.trim() || null,
       });
       toast.ok('Dados de pagamento salvos!');
+      onChange();
     } catch (err) {
       toast.erro(err);
     } finally {
@@ -175,22 +176,32 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
       <form onSubmit={salvarPagamento} className="rounded-lg border border-stone-200 bg-white p-4 space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-stone-800">
-            Dados para pagamento (enviados no e-mail ao fechar a rodada)
+            Dados para pagamento (exibidos no site e enviados por e-mail ao fechar a rodada)
           </h3>
           <p className="text-xs text-stone-500">
-            Informe sua chave PIX e/ou dados bancários (banco, agência e conta). Eles ficam salvos no seu perfil.
+            Informe sua chave PIX ou cole um código <strong>PIX Copia e Cola</strong> (começando com{' '}
+            <code>000201...</code>) para gerar o QR Code automaticamente.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className="label" htmlFor="pag-pix">Chave PIX</label>
+          <div className="sm:col-span-2 lg:col-span-4">
+            <label className="label" htmlFor="pag-pix">
+              Chave PIX ou código PIX Copia e Cola
+            </label>
             <input
               id="pag-pix"
-              className="input"
-              placeholder="CPF, e-mail, celular ou aleatória"
+              maxLength={500}
+              className="input font-mono text-xs"
+              placeholder="CPF, e-mail, celular, chave aleatória ou código PIX Copia e Cola (000201...)"
               value={pixChave}
               onChange={(e) => setPixChave(e.target.value)}
             />
+            {pixChave.trim().startsWith('000201') && pixChave.includes('br.gov.bcb.pix') && (
+              <p className="mt-1 text-xs font-medium text-emerald-700">
+                ✓ Código PIX Copia e Cola detectado — o QR Code será exibido automaticamente no site
+                e nos e-mails de cobrança!
+              </p>
+            )}
           </div>
           <div>
             <label className="label" htmlFor="pag-banco">Banco</label>

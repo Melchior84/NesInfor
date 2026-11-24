@@ -30,6 +30,7 @@ export interface ItemEmailParticipante {
 export interface EmailFechamentoParticipanteParams {
   para: string;
   nomeParticipante: string;
+  rodadaId?: number;
   rodadaTitulo: string;
   itens: ItemEmailParticipante[];
   cafezinhosGorjeta: number;
@@ -348,16 +349,37 @@ export class MailService {
          </ul>`
       : '';
 
+    const pixLimpo = p.pagamento.pixChave?.trim() || null;
+    const isPixCopiaCola = Boolean(
+      pixLimpo && pixLimpo.startsWith('000201') && pixLimpo.includes('br.gov.bcb.pix'),
+    );
+    const qrCodeUrl =
+      isPixCopiaCola && p.rodadaId
+        ? `${this.frontendUrl}/api/rodadas/${p.rodadaId}/pix-qrcode.png`
+        : null;
+
     const htmlPagamento =
       p.valorTotalAPagar > 0
-        ? `<div style="margin-top:16px;padding:12px;border:1px solid #e2cdb3;background:#faf6f1;border-radius:8px;max-width:540px">
+        ? `<div style="margin-top:16px;padding:14px;border:1px solid #e2cdb3;background:#faf6f1;border-radius:8px;max-width:540px">
             <h3 style="margin:0 0 8px 0;color:#583619">Dados para pagamento</h3>
             <p style="margin:4px 0"><strong>Organizador:</strong> ${escapeHtml(p.pagamento.organizadorNome)}</p>
-            ${p.pagamento.pixChave ? `<p style="margin:4px 0"><strong>Chave PIX:</strong> <code>${escapeHtml(p.pagamento.pixChave)}</code></p>` : ''}
+            <p style="margin:4px 0"><strong>Valor a pagar:</strong> ${brl(p.valorTotalAPagar)}</p>
+            ${
+              qrCodeUrl
+                ? `<div style="margin:12px 0;text-align:center;background:#ffffff;padding:12px;border-radius:8px;border:1px solid #e7e5e4">
+                    <p style="margin:0 0 8px 0;font-size:13px;color:#583619"><strong>Pague via QR Code PIX</strong></p>
+                    <img src="${qrCodeUrl}" alt="QR Code PIX" width="210" height="210" style="display:block;margin:0 auto;border:0" />
+                    <p style="margin:8px 0 4px 0;font-size:12px;color:#78716c">Ou use o código <strong>PIX Copia e Cola</strong> abaixo:</p>
+                    <div style="font-family:monospace;font-size:11px;word-break:break-all;background:#f5f5f4;padding:8px;border-radius:6px;text-align:left;color:#292524">${escapeHtml(pixLimpo!)}</div>
+                  </div>`
+                : pixLimpo
+                  ? `<p style="margin:4px 0"><strong>Chave PIX:</strong> <code>${escapeHtml(pixLimpo)}</code></p>`
+                  : ''
+            }
             ${p.pagamento.banco ? `<p style="margin:4px 0"><strong>Banco:</strong> ${escapeHtml(p.pagamento.banco)}</p>` : ''}
             ${p.pagamento.agencia ? `<p style="margin:4px 0"><strong>Agência:</strong> ${escapeHtml(p.pagamento.agencia)}</p>` : ''}
             ${p.pagamento.conta ? `<p style="margin:4px 0"><strong>Conta:</strong> ${escapeHtml(p.pagamento.conta)}</p>` : ''}
-            ${!p.pagamento.pixChave && !p.pagamento.banco && !p.pagamento.agencia && !p.pagamento.conta ? '<p style="margin:4px 0"><em>Dados bancários/PIX ainda não informados — consulte o organizador.</em></p>' : ''}
+            ${!pixLimpo && !p.pagamento.banco && !p.pagamento.agencia && !p.pagamento.conta ? '<p style="margin:4px 0"><em>Dados bancários/PIX ainda não informados — consulte o organizador.</em></p>' : ''}
           </div>`
         : '';
 

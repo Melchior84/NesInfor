@@ -60,6 +60,28 @@ export class SolicitacoesService {
     const gorjetaContabilizada = temCaixaFechada && cafezinhosGorjeta > 0;
     const valorGorjetaEfetivo = gorjetaContabilizada ? valorGorjeta : 0;
 
+    const [orgPag] = rodada.organizadorId
+      ? await this.db.query<{
+          nome: string;
+          pixChave: string | null;
+          banco: string | null;
+          agencia: string | null;
+          conta: string | null;
+        }>(
+          `SELECT nome, pix_chave AS pixChave, banco, agencia, conta
+             FROM usuarios WHERE id = ?`,
+          [rodada.organizadorId],
+        )
+      : [];
+
+    const pixLimpo = orgPag?.pixChave?.trim() || null;
+    const isPixCopiaCola = Boolean(
+      pixLimpo && pixLimpo.startsWith('000201') && pixLimpo.includes('br.gov.bcb.pix'),
+    );
+    const temDadosPag = Boolean(
+      pixLimpo || orgPag?.banco || orgPag?.agencia || orgPag?.conta,
+    );
+
     return {
       rodada,
       solicitacaoId: sol?.id ?? null,
@@ -75,6 +97,17 @@ export class SolicitacoesService {
       valorPorCafezinho: VALOR_CAFEZINHO_GORJETA,
       gorjetaContabilizada,
       valorTotalAPagar: round2(totalEmCaixasFechadas + valorGorjetaEfetivo),
+      pagamentoOrganizador:
+        orgPag && temDadosPag
+          ? {
+              organizadorNome: orgPag.nome,
+              pixChave: pixLimpo,
+              isPixCopiaCola,
+              banco: orgPag.banco,
+              agencia: orgPag.agencia,
+              conta: orgPag.conta,
+            }
+          : null,
     };
   }
 

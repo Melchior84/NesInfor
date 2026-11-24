@@ -321,6 +321,99 @@ export default function MeuPedido({ rodadaId, pedido, capsulas, onChange }: Prop
           )}
         </div>
       </div>
+
+      {/* Dados de pagamento + QR Code PIX do organizador */}
+      {pedido.valorTotalAPagar > 0 && pedido.pagamentoOrganizador && (
+        <div className="rounded-xl border border-cafe-200 bg-white p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-cafe-800">💳 Pagamento do pedido</h3>
+              <p className="text-xs text-stone-500">
+                Organizador: <strong>{pedido.pagamentoOrganizador.organizadorNome}</strong> · Valor:{' '}
+                <strong className="text-cafe-700">{moeda(pedido.valorTotalAPagar)}</strong>
+              </p>
+            </div>
+            <BadgePagamento status={pedido.statusPagamento} />
+          </div>
+
+          {pedido.pagamentoOrganizador.isPixCopiaCola && pedido.pagamentoOrganizador.pixChave ? (
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <img
+                src={`/api/rodadas/${rodadaId}/pix-qrcode.png`}
+                alt="QR Code PIX para pagamento"
+                className="h-44 w-44 shrink-0 rounded-lg border border-stone-200 bg-white p-1.5"
+              />
+              <div className="min-w-0 flex-1 space-y-2">
+                <p className="text-xs text-stone-600">
+                  Escaneie o QR Code no aplicativo do seu banco ou copie o código{' '}
+                  <strong>PIX Copia e Cola</strong> abaixo e informe o valor de{' '}
+                  <strong>{moeda(pedido.valorTotalAPagar)}</strong>:
+                </p>
+                <div className="break-all rounded-lg bg-stone-50 p-2 font-mono text-[11px] text-stone-700 border border-stone-200">
+                  {pedido.pagamentoOrganizador.pixChave}
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(pedido.pagamentoOrganizador!.pixChave!)
+                      .then(
+                        () => toast.ok('Código PIX Copia e Cola copiado!'),
+                        () => toast.erro('Não foi possível copiar o código PIX.'),
+                      );
+                  }}
+                >
+                  Copiar código PIX
+                </button>
+              </div>
+            </div>
+          ) : pedido.pagamentoOrganizador.pixChave ? (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-stone-600">Chave PIX:</span>
+              <code className="rounded bg-stone-100 px-2 py-0.5 font-mono text-xs text-stone-800">
+                {pedido.pagamentoOrganizador.pixChave}
+              </code>
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(pedido.pagamentoOrganizador!.pixChave!)
+                    .then(
+                      () => toast.ok('Chave PIX copiada!'),
+                      () => toast.erro('Não foi possível copiar.'),
+                    );
+                }}
+              >
+                Copiar chave
+              </button>
+            </div>
+          ) : null}
+
+          {(pedido.pagamentoOrganizador.banco ||
+            pedido.pagamentoOrganizador.agencia ||
+            pedido.pagamentoOrganizador.conta) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-stone-100 pt-2 text-xs text-stone-600">
+              {pedido.pagamentoOrganizador.banco && (
+                <span>
+                  <strong>Banco:</strong> {pedido.pagamentoOrganizador.banco}
+                </span>
+              )}
+              {pedido.pagamentoOrganizador.agencia && (
+                <span>
+                  <strong>Agência:</strong> {pedido.pagamentoOrganizador.agencia}
+                </span>
+              )}
+              {pedido.pagamentoOrganizador.conta && (
+                <span>
+                  <strong>Conta:</strong> {pedido.pagamentoOrganizador.conta}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -60,7 +60,7 @@ export class TrocarSenhaObrigatoriaDto {
 export class DadosPagamentoDto {
   @IsOptional()
   @IsString()
-  @MaxLength(180)
+  @MaxLength(500)
   pixChave?: string | null;
 
   @IsOptional()

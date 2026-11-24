@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import * as QRCode from 'qrcode';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
 import { DatabaseService, SqlExecutor } from '../database/database.service';
 import { ItemEmailParticipante, MailService } from '../mail/mail.service';
@@ -318,6 +319,7 @@ export class RodadasService {
         this.mail.enviarFechamentoParticipante({
           para: p.email,
           nomeParticipante: p.nome,
+          rodadaId: rodada.id,
           rodadaTitulo: rodada.titulo,
           itens: p.itens,
           cafezinhosGorjeta: p.cafezinhosGorjeta,
@@ -853,5 +855,25 @@ export class RodadasService {
       intensidadeMedia,
       ultimasRodadas,
     };
+  }
+
+  async obterPixQrCodePng(rodadaId: number): Promise<Buffer> {
+    const [row] = await this.db.query<{ pixChave: string | null }>(
+      `SELECT u.pix_chave AS pixChave
+         FROM rodadas_pedido r
+         JOIN usuarios u ON u.id = r.organizador_id
+        WHERE r.id = ?`,
+      [rodadaId],
+    );
+    const codigo = row?.pixChave?.trim();
+    if (!codigo || !codigo.startsWith('000201') || !codigo.includes('br.gov.bcb.pix')) {
+      throw new NotFoundException('QR Code PIX indisponivel para esta rodada.');
+    }
+    return QRCode.toBuffer(codigo, {
+      type: 'png',
+      width: 260,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+    });
   }
 }

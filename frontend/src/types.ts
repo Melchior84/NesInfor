@@ -153,6 +153,15 @@ export interface ItemPedido {
   quantidadeAguardando: number;
 }
 
+export interface PagamentoOrganizador {
+  organizadorNome: string;
+  pixChave: string | null;
+  isPixCopiaCola: boolean;
+  banco: string | null;
+  agencia: string | null;
+  conta: string | null;
+}
+
 export interface MeuPedido {
   rodada: Rodada;
   solicitacaoId: number | null;
@@ -168,6 +177,7 @@ export interface MeuPedido {
   valorPorCafezinho: number;
   gorjetaContabilizada: boolean;
   valorTotalAPagar: number;
+  pagamentoOrganizador: PagamentoOrganizador | null;
 }
 
 export interface ParticipanteSorteio {

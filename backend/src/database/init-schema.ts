@@ -23,7 +23,7 @@ export async function garantirSchema(
       email_verificado TINYINT(1) NOT NULL DEFAULT 1,
       aprovado TINYINT(1) NOT NULL DEFAULT 1,
       deve_trocar_senha TINYINT(1) NOT NULL DEFAULT 0,
-      pix_chave VARCHAR(180) NULL,
+      pix_chave VARCHAR(500) NULL,
       banco VARCHAR(100) NULL,
       agencia VARCHAR(30) NULL,
       conta VARCHAR(40) NULL,
@@ -193,6 +193,20 @@ export async function garantirSchema(
       `ALTER TABLE usuarios ADD COLUMN aprovado TINYINT(1) NOT NULL DEFAULT 1 AFTER email_verificado`,
     );
     logger.log(`Coluna usuarios.aprovado adicionada (banco ${dbName}).`);
+  }
+
+  const [pixColRows] = await pool.execute(
+    `SELECT CHARACTER_MAXIMUM_LENGTH AS tamanho
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'pix_chave'`,
+    [dbName],
+  );
+  const pixTamanho = Number((pixColRows as { tamanho: number }[])[0]?.tamanho ?? 0);
+  if (pixTamanho > 0 && pixTamanho < 500) {
+    await pool.query(
+      `ALTER TABLE usuarios MODIFY COLUMN pix_chave VARCHAR(500) NULL`,
+    );
+    logger.log(`Coluna usuarios.pix_chave ampliada para VARCHAR(500) (banco ${dbName}).`);
   }
 
   const [solCols] = await pool.execute(

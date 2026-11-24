@@ -8,9 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RodadaOrganizadorGuard } from '../common/guards/rodada-organizador.guard';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
@@ -104,5 +107,21 @@ export class RodadasController {
   @Get(':id/participantes')
   participantes(@Param('id', ParseIntPipe) id: number) {
     return this.rodadas.participantes(id);
+  }
+
+  /**
+   * QR Code PNG do PIX Copia e Cola do organizador da rodada.
+   * Rota publica para funcionar tambem em clientes de e-mail (Gmail/Outlook).
+   */
+  @Public()
+  @Get(':id/pix-qrcode.png')
+  async pixQrCode(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const png = await this.rodadas.obterPixQrCodePng(id);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(png);
   }
 }
