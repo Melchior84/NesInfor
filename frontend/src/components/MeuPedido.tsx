@@ -322,8 +322,10 @@ export default function MeuPedido({ rodadaId, pedido, capsulas, onChange }: Prop
         </div>
       </div>
 
-      {/* Dados de pagamento + QR Code PIX do organizador */}
-      {pedido.valorTotalAPagar > 0 && pedido.pagamentoOrganizador && (
+      {/* Dados de pagamento + QR Code PIX do organizador (somente após fechar a rodada) */}
+      {['FECHADO', 'COMPRADO', 'ENTREGUE'].includes(pedido.rodada.status) &&
+        pedido.valorTotalAPagar > 0 &&
+        pedido.pagamentoOrganizador && (
         <div className="rounded-xl border border-cafe-200 bg-white p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>

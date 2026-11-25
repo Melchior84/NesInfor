@@ -60,19 +60,23 @@ export class SolicitacoesService {
     const gorjetaContabilizada = temCaixaFechada && cafezinhosGorjeta > 0;
     const valorGorjetaEfetivo = gorjetaContabilizada ? valorGorjeta : 0;
 
-    const [orgPag] = rodada.organizadorId
-      ? await this.db.query<{
-          nome: string;
-          pixChave: string | null;
-          banco: string | null;
-          agencia: string | null;
-          conta: string | null;
-        }>(
-          `SELECT nome, pix_chave AS pixChave, banco, agencia, conta
-             FROM usuarios WHERE id = ?`,
-          [rodada.organizadorId],
-        )
-      : [];
+    const rodadaFechada = ['FECHADO', 'COMPRADO', 'ENTREGUE'].includes(
+      rodada.status,
+    );
+    const [orgPag] =
+      rodadaFechada && rodada.organizadorId
+        ? await this.db.query<{
+            nome: string;
+            pixChave: string | null;
+            banco: string | null;
+            agencia: string | null;
+            conta: string | null;
+          }>(
+            `SELECT nome, pix_chave AS pixChave, banco, agencia, conta
+               FROM usuarios WHERE id = ?`,
+            [rodada.organizadorId],
+          )
+        : [];
 
     const pixLimpo = orgPag?.pixChave?.trim() || null;
     const isPixCopiaCola = Boolean(

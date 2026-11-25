@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -52,6 +53,17 @@ export class RodadasController {
   ) {
     const parsed = ano ? Number(ano) : undefined;
     return this.rodadas.meuPainel(usuario, parsed);
+  }
+
+  @HttpCode(200)
+  @Post('solicitar-abertura')
+  solicitarAbertura(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.rodadas.solicitarAbertura(usuario);
+  }
+
+  @Delete('solicitar-abertura')
+  cancelarSolicitacaoAbertura(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.rodadas.cancelarSolicitacaoAbertura(usuario);
   }
 
   @Roles('ADMIN')

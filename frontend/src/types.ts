@@ -254,6 +254,17 @@ export interface MeuPainel {
   ano: number;
   anosDisponiveis: number[];
   receberEmailsCafe: boolean;
+  solicitacaoAbertura: {
+    existeRodadaAtiva: boolean;
+    euSolicitei: boolean;
+    minhaSolicitacaoEm: string | null;
+    totalSolicitacoes: number;
+    solicitantes: {
+      usuarioId: number;
+      nome: string;
+      criadoEm: string;
+    }[];
+  };
   totalPedidosAno: number;
   totalCapsulasConsumidasAno: number;
   totalCapsulasSolicitadasAno: number;

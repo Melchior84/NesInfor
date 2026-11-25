@@ -108,9 +108,41 @@ export class RodadasService {
        VALUES (?, ?, 'ABERTO', NOW())`,
       [dto.titulo.trim(), organizadorId],
     );
+    // Limpa solicitacoes de abertura pendentes assim que uma nova rodada e aberta
+    await this.db.execute('DELETE FROM solicitacoes_abertura_rodada');
     const rodada = await this.obter(res.insertId);
     const notificacoes = await this.notificarNovaRodada(rodada);
     return { ...rodada, notificacoes };
+  }
+
+  async solicitarAbertura(usuario: UsuarioAutenticado) {
+    const existente = await this.ativa();
+    if (existente) {
+      throw new ConflictException(
+        'Ja existe uma rodada em andamento. Nao e possivel solicitar abertura agora.',
+      );
+    }
+    await this.db.execute(
+      `INSERT INTO solicitacoes_abertura_rodada (usuario_id, criado_em)
+       VALUES (?, NOW())
+       ON DUPLICATE KEY UPDATE criado_em = criado_em`,
+      [usuario.id],
+    );
+    const [row] = await this.db.query<{ criadoEm: Date }>(
+      `SELECT criado_em AS criadoEm
+         FROM solicitacoes_abertura_rodada
+        WHERE usuario_id = ?`,
+      [usuario.id],
+    );
+    return { solicitado: true, criadoEm: row?.criadoEm ?? new Date() };
+  }
+
+  async cancelarSolicitacaoAbertura(usuario: UsuarioAutenticado) {
+    await this.db.execute(
+      'DELETE FROM solicitacoes_abertura_rodada WHERE usuario_id = ?',
+      [usuario.id],
+    );
+    return { solicitado: false };
   }
 
   private async notificarNovaRodada(rodada: Rodada) {
@@ -902,10 +934,32 @@ export class RodadasService {
       [usuario.id],
     );
 
+    const rodadaAtivaAtual = await this.ativa();
+    const solicitacoesAberturaRows = await this.db.query<{
+      usuarioId: number;
+      nome: string;
+      criadoEm: Date;
+    }>(
+      `SELECT s.usuario_id AS usuarioId, u.nome, s.criado_em AS criadoEm
+         FROM solicitacoes_abertura_rodada s
+         JOIN usuarios u ON u.id = s.usuario_id
+        ORDER BY s.criado_em ASC`,
+    );
+    const minhaSolAbertura =
+      solicitacoesAberturaRows.find((s) => s.usuarioId === usuario.id) ?? null;
+
     return {
       ano,
       anosDisponiveis,
       receberEmailsCafe: Boolean(prefRow?.receberEmailsCafe ?? 1),
+      solicitacaoAbertura: {
+        existeRodadaAtiva: Boolean(rodadaAtivaAtual),
+        euSolicitei: Boolean(minhaSolAbertura),
+        minhaSolicitacaoEm: minhaSolAbertura?.criadoEm ?? null,
+        totalSolicitacoes: solicitacoesAberturaRows.length,
+        solicitantes:
+          usuario.perfil === 'ADMIN' ? solicitacoesAberturaRows : [],
+      },
       totalPedidosAno,
       totalCapsulasConsumidasAno,
       totalCapsulasSolicitadasAno,

@@ -187,6 +187,10 @@ export const api = {
     get<MeuPainel>(
       ano ? `/rodadas/meu-painel?ano=${encodeURIComponent(ano)}` : '/rodadas/meu-painel',
     ),
+  solicitarAberturaRodada: () =>
+    post<{ solicitado: boolean; criadoEm: string }>('/rodadas/solicitar-abertura'),
+  cancelarSolicitacaoAbertura: () =>
+    request<{ solicitado: boolean }>('DELETE', '/rodadas/solicitar-abertura'),
   rodada: (id: number) => get<Rodada>(`/rodadas/${id}`),
   criarRodada: (titulo: string, assumirOrganizacao: boolean, organizadorId?: number | null) =>
     post<Rodada & { notificacoes?: { enviados: number; falhas: number } }>('/rodadas', {

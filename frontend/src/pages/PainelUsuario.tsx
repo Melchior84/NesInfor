@@ -23,6 +23,7 @@ export default function PainelUsuario() {
   const [carregando, setCarregando] = useState(true);
   const [salvandoPref, setSalvandoPref] = useState(false);
   const [mostrarPrefs, setMostrarPrefs] = useState(false);
+  const [ocupadoSolicitacao, setOcupadoSolicitacao] = useState(false);
 
   async function alternarEmails(marcado: boolean) {
     if (!dados) return;
@@ -59,6 +60,34 @@ export default function PainelUsuario() {
   useEffect(() => {
     void carregar(ano);
   }, [ano, carregar]);
+
+  async function solicitarAbertura() {
+    setOcupadoSolicitacao(true);
+    try {
+      await api.solicitarAberturaRodada();
+      toast.ok('Solicitação de abertura de rodada registrada!');
+      await carregar(ano);
+    } catch (e) {
+      toast.erro(e);
+    } finally {
+      setOcupadoSolicitacao(false);
+    }
+  }
+
+  async function cancelarSolicitacao() {
+    setOcupadoSolicitacao(true);
+    try {
+      await api.cancelarSolicitacaoAbertura();
+      toast.ok('Solicitação de abertura cancelada.');
+      await carregar(ano);
+    } catch (e) {
+      toast.erro(e);
+    } finally {
+      setOcupadoSolicitacao(false);
+    }
+  }
+
+  const isAdmin = usuario?.perfil === 'ADMIN';
 
   const primeiroNome = usuario?.nome?.split(' ')[0] ?? 'Cafezeiro';
   const pctVariedade =
@@ -138,6 +167,100 @@ export default function PainelUsuario() {
                   </p>
                 </div>
               </label>
+            </section>
+          )}
+
+          {/* Solicitação de abertura de nova rodada (somente quando não há rodada ativa) */}
+          {!dados.solicitacaoAbertura.existeRodadaAtiva && (
+            <section className="card space-y-4 border-cafe-200 bg-cafe-50/40">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-cafe-700">
+                    ☕ Querendo café? Solicite a próxima rodada!
+                  </h2>
+                  <p className="text-xs text-stone-500">
+                    Não há nenhuma rodada aberta no momento.
+                    {dados.solicitacaoAbertura.totalSolicitacoes > 0 && (
+                      <>
+                        {' '}
+                        <strong>
+                          {dados.solicitacaoAbertura.totalSolicitacoes}{' '}
+                          {dados.solicitacaoAbertura.totalSolicitacoes === 1
+                            ? 'pessoa já solicitou'
+                            : 'pessoas já solicitaram'}
+                        </strong>{' '}
+                        a abertura!
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                {dados.solicitacaoAbertura.euSolicitei ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                      ✓ Solicitado em {dataHora(dados.solicitacaoAbertura.minhaSolicitacaoEm)}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-danger btn-sm"
+                      disabled={ocupadoSolicitacao}
+                      onClick={() => void cancelarSolicitacao()}
+                    >
+                      {ocupadoSolicitacao ? 'Cancelando…' : 'Cancelar solicitação'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={ocupadoSolicitacao}
+                    onClick={() => void solicitarAbertura()}
+                  >
+                    {ocupadoSolicitacao ? 'Enviando…' : '☕ Solicitar abertura de rodada'}
+                  </button>
+                )}
+              </div>
+
+              {/* Lista de solicitantes visível apenas para ADMIN */}
+              {isAdmin && (
+                <div className="border-t border-cafe-200/70 pt-3 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-cafe-700">
+                      Solicitações de abertura ({dados.solicitacaoAbertura.solicitantes.length})
+                    </h3>
+                    <Link to="/rodadas" className="btn-secondary btn-sm">
+                      Abrir nova rodada →
+                    </Link>
+                  </div>
+
+                  {dados.solicitacaoAbertura.solicitantes.length === 0 ? (
+                    <p className="text-xs text-stone-500">
+                      Nenhuma solicitação de abertura registrada ainda.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-stone-200 bg-white">
+                      <table className="w-full text-xs">
+                        <thead className="text-left text-stone-500">
+                          <tr className="border-b border-stone-100">
+                            <th className="px-3 py-2">Solicitante</th>
+                            <th className="px-3 py-2 text-right">Data e hora</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100">
+                          {dados.solicitacaoAbertura.solicitantes.map((s) => (
+                            <tr key={s.usuarioId}>
+                              <td className="px-3 py-2 font-medium text-stone-800">{s.nome}</td>
+                              <td className="px-3 py-2 text-right text-stone-500">
+                                {dataHora(s.criadoEm)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
