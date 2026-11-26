@@ -101,8 +101,8 @@ export default function NovaRodadaForm({ onCriada }: { onCriada: (r: Rodada) => 
         </button>
         {usuarios.length > 0 && (
           <span className="text-xs text-stone-500">
-            📧 {qtdAlertados} usuário{qtdAlertados === 1 ? '' : 's'} receberá
-            {qtdAlertados === 1 ? '' : 'ão'} aviso por e-mail
+            📧 {qtdAlertados} usuário{qtdAlertados === 1 ? '' : 's'} receber
+            {qtdAlertados === 1 ? 'á' : 'ão'} aviso por e-mail
           </span>
         )}
       </div>

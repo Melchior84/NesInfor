@@ -5,6 +5,10 @@ import GoogleButton from '../components/GoogleButton';
 import { useToast } from '../components/Toast';
 import { api } from '../lib/api';
 
+function isEmailPrevi(valor: string): boolean {
+  return valor.trim().toLowerCase().endsWith('@previ.com.br');
+}
+
 export default function Register() {
   const { registrar } = useAuth();
   const toast = useToast();
@@ -59,6 +63,13 @@ export default function Register() {
           <p className="text-xs text-stone-500">
             E-mail cadastrado: <strong>{cadastrado.email}</strong>
           </p>
+          {!cadastrado.viaGoogle && isEmailPrevi(cadastrado.email) && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-left text-xs text-amber-800">
+              <strong>⚠️ Atenção (e-mail @previ.com.br):</strong> devido às políticas de restrições
+              da Previ, os e-mails enviados pelo Cafezinho Infor estão indo para a{' '}
+              <strong>quarentena</strong>. Verifique lá para encontrar o link de confirmação.
+            </div>
+          )}
           {!cadastrado.viaGoogle && (
             <button className="btn-secondary w-full" disabled={reenviando} onClick={reenviar}>
               {reenviando ? 'Reenviando…' : 'Reenviar e-mail de confirmação'}
@@ -91,6 +102,13 @@ export default function Register() {
           <label className="label" htmlFor="email">E-mail</label>
           <input id="email" type="email" required className="input"
             value={email} onChange={(e) => setEmail(e.target.value)} />
+          {isEmailPrevi(email) && (
+            <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-800">
+              <strong>⚠️ Atenção:</strong> devido às políticas de restrições da Previ, os e-mails
+              enviados pelo Cafezinho Infor estão indo para a <strong>quarentena</strong>. Verifique
+              lá!
+            </div>
+          )}
         </div>
         <div>
           <label className="label" htmlFor="senha">Senha (mín. 8 caracteres)</label>
