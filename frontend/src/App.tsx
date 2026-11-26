@@ -7,6 +7,7 @@ import ConfirmarEmail from './pages/ConfirmarEmail';
 import Dashboard from './pages/Dashboard';
 import EsqueciSenha from './pages/EsqueciSenha';
 import Historico from './pages/Historico';
+import Home from './pages/Home';
 import Login from './pages/Login';
 import PainelUsuario from './pages/PainelUsuario';
 import RankingCafezinhos from './pages/RankingCafezinhos';
@@ -24,12 +25,13 @@ export default function App() {
   if (!usuario) {
     return (
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Register />} />
         <Route path="/confirmar-email" element={<ConfirmarEmail />} />
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
         <Route path="/redefinir-senha" element={<RedefinirSenha />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }

@@ -132,6 +132,11 @@ export default function Register() {
           Já tem conta?{' '}
           <Link to="/login" className="font-medium text-cafe-600 hover:underline">Entrar</Link>
         </p>
+        <p className="text-center text-xs text-stone-400">
+          <Link to="/" className="hover:text-cafe-600 hover:underline">
+            ← Voltar à página inicial
+          </Link>
+        </p>
       </form>
       <p className="mt-6 text-xs text-stone-400">
         Desenvolvido por <span className="font-semibold text-cafe-700">Studios Melk</span>

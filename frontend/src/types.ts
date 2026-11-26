@@ -21,6 +21,15 @@ export interface UsuarioAdmin extends Usuario {
   criadoEm: string;
 }
 
+export interface CapsulaPublica {
+  id: number;
+  nome: string;
+  descricao: string | null;
+  imagemUrl: string | null;
+  intensidade: number | null;
+  tamanhoCaixa: number;
+}
+
 export interface Capsula {
   id: number;
   nome: string;

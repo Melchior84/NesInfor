@@ -23,6 +23,24 @@ function limparTexto(valor: string | null | undefined): string | null {
 export class CapsulasService {
   constructor(private readonly db: DatabaseService) {}
 
+  /** Vitrine publica para a pagina inicial (sem expor precos internos). */
+  listarPublico() {
+    return this.db.query<{
+      id: number;
+      nome: string;
+      descricao: string | null;
+      imagemUrl: string | null;
+      intensidade: number | null;
+      tamanhoCaixa: number;
+    }>(
+      `SELECT id, nome, descricao, imagem_url AS imagemUrl, intensidade,
+              tamanho_caixa AS tamanhoCaixa
+         FROM capsulas
+        WHERE ativo = 1
+        ORDER BY nome`,
+    );
+  }
+
   /** Usuarios comuns so enxergam capsulas ativas. */
   listar(usuario: UsuarioAutenticado, somenteAtivas: boolean) {
     const filtrar = somenteAtivas || usuario.perfil !== 'ADMIN';

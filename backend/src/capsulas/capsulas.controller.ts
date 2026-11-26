@@ -18,6 +18,7 @@ import { mkdirSync, openSync, readSync, closeSync, unlinkSync } from 'fs';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
 import {
@@ -64,6 +65,12 @@ function ehImagemValida(caminho: string): boolean {
 @Controller('capsulas')
 export class CapsulasController {
   constructor(private readonly capsulas: CapsulasService) {}
+
+  @Public()
+  @Get('publico')
+  listarPublico() {
+    return this.capsulas.listarPublico();
+  }
 
   @Get()
   listar(

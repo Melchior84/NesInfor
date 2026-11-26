@@ -1,5 +1,6 @@
 import type {
   Capsula,
+  CapsulaPublica,
   DadosPagamento,
   HistoricoPreco,
   MeuPainel,
@@ -113,6 +114,7 @@ export const api = {
   salvarTema: (tema: Tema) => put<{ tema: Tema }>('/auth/tema', { tema }),
 
   // cápsulas
+  capsulasPublico: () => get<CapsulaPublica[]>('/capsulas/publico'),
   capsulas: (somenteAtivas = false) =>
     get<Capsula[]>(`/capsulas${somenteAtivas ? '?ativos=true' : ''}`),
   criarCapsula: (d: {
