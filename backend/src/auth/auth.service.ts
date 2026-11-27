@@ -12,6 +12,7 @@ import * as argon2 from 'argon2';
 import { createHash, randomBytes } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
+import { AuthDbService } from '../database/auth-db.service';
 import { DatabaseService, isDuplicateEntry } from '../database/database.service';
 import { MailService } from '../mail/mail.service';
 import { DadosPagamentoDto, LoginDto, RegisterDto } from './auth.dto';
@@ -43,6 +44,7 @@ export class AuthService {
 
   constructor(
     private readonly db: DatabaseService,
+    private readonly authDb: AuthDbService,
     private readonly jwt: JwtService,
     private readonly mail: MailService,
     private readonly config: ConfigService,
@@ -92,6 +94,15 @@ export class AuthService {
     const senhaHash = await argon2.hash(dto.senha, { type: argon2.argon2id });
     const autoAprovado = await this.dominioAutoAprovado(email);
 
+    if (this.authDb.habilitado) {
+      const contaExistente = await this.authDb.buscarPorEmail(email);
+      if (contaExistente) {
+        throw new ConflictException(
+          'Este e-mail ja possui uma conta Studios Melk. Faca login com sua senha atual.',
+        );
+      }
+    }
+
     let usuarioId: number;
     try {
       const res = await this.db.execute(
@@ -106,6 +117,13 @@ export class AuthService {
       }
       throw erro;
     }
+
+    await this.authDb.criarOuSincronizarConta({
+      nome,
+      email,
+      senhaHash,
+      emailVerificado: false,
+    });
 
     const token = await this.criarToken(usuarioId, 'CONFIRMACAO_EMAIL', 24 * 60);
     await this.mail.enviarConfirmacaoEmail(email, nome, token);
@@ -158,6 +176,10 @@ export class AuthService {
       return u;
     });
 
+    if (usuarioConfirmado) {
+      await this.authDb.marcarEmailVerificado(usuarioConfirmado.email);
+    }
+
     // Se ainda aguarda aprovacao, avisa todos os ADMINs ativos por e-mail
     if (usuarioConfirmado && !usuarioConfirmado.aprovado) {
       await this.avisarAdminsCadastroPendente(
@@ -198,6 +220,99 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const email = dto.email.trim().toLowerCase();
+
+    // Quando o Banco de Contas compartilhado esta ativo, ele e a fonte unica de senha/status
+    if (this.authDb.habilitado) {
+      const conta = await this.authDb.buscarPorEmail(email);
+      if (conta) {
+        const validoConta =
+          Boolean(conta.ativo) &&
+          (await this.verificar(conta.senha_hash, dto.senha));
+        if (!validoConta) {
+          throw new UnauthorizedException('Credenciais invalidas.');
+        }
+        if (!conta.email_verificado) {
+          throw new ForbiddenException(
+            'E-mail ainda nao confirmado. Verifique sua caixa de entrada ou solicite o reenvio do link.',
+          );
+        }
+
+        let [row] = await this.db.query<UsuarioRow>(
+          `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
+             FROM usuarios WHERE email = ?`,
+          [email],
+        );
+
+        // Usuario criou conta em outro site Studios Melk (ex.: Bolao) e entrou aqui pela 1a vez
+        if (!row) {
+          const autoAprovado = await this.dominioAutoAprovado(email);
+          const res = await this.db.execute(
+            `INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema, criado_em, atualizado_em)
+             VALUES (?, ?, ?, 'USUARIO', 1, 1, ?, ?, ?, NOW(), NOW())`,
+            [
+              conta.nome,
+              email,
+              conta.senha_hash,
+              autoAprovado ? 1 : 0,
+              conta.deve_trocar_senha ? 1 : 0,
+              conta.tema === 'escuro' ? 'escuro' : 'claro',
+            ],
+          );
+          if (!autoAprovado) {
+            await this.avisarAdminsCadastroPendente(conta.nome, email);
+            throw new ForbiddenException(
+              'Sua conta Studios Melk foi vinculada ao Cafezinho Infor e aguarda aprovacao de um administrador.',
+            );
+          }
+          [row] = await this.db.query<UsuarioRow>(
+            `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
+               FROM usuarios WHERE id = ?`,
+            [res.insertId],
+          );
+        } else {
+          if (!row.ativo) {
+            throw new UnauthorizedException('Credenciais invalidas.');
+          }
+          // Espelha eventual alteracao de senha/tema feita em outro site Studios Melk
+          if (
+            row.senha_hash !== conta.senha_hash ||
+            Boolean(row.deve_trocar_senha) !== Boolean(conta.deve_trocar_senha) ||
+            !row.email_verificado ||
+            row.tema !== conta.tema
+          ) {
+            await this.db.execute(
+              `UPDATE usuarios
+                  SET senha_hash = ?, deve_trocar_senha = ?, email_verificado = 1, tema = ?, atualizado_em = NOW()
+                WHERE id = ?`,
+              [
+                conta.senha_hash,
+                conta.deve_trocar_senha ? 1 : 0,
+                conta.tema === 'escuro' ? 'escuro' : 'claro',
+                row.id,
+              ],
+            );
+            row.deve_trocar_senha = conta.deve_trocar_senha;
+            row.tema = conta.tema;
+          }
+          if (!row.aprovado) {
+            throw new ForbiddenException(
+              'Seu cadastro esta aguardando aprovacao de um administrador.',
+            );
+          }
+        }
+
+        const usuario: UsuarioAutenticado = {
+          id: row.id,
+          nome: row.nome,
+          email: row.email,
+          perfil: row.perfil,
+          deveTrocarSenha: Boolean(row.deve_trocar_senha),
+          tema: row.tema === 'escuro' ? 'escuro' : 'claro',
+        };
+        return { token: await this.assinar(usuario), usuario };
+      }
+    }
+
     const [row] = await this.db.query<UsuarioRow>(
       `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
          FROM usuarios WHERE email = ?`,
@@ -273,6 +388,7 @@ export class AuthService {
           'UPDATE usuarios SET email_verificado = 1, atualizado_em = NOW() WHERE id = ?',
           [existente.id],
         );
+        await this.authDb.marcarEmailVerificado(email);
       }
       if (!existente.aprovado) {
         throw new ForbiddenException(
@@ -312,6 +428,13 @@ export class AuthService {
       }
       throw erro;
     }
+
+    await this.authDb.criarOuSincronizarConta({
+      nome,
+      email,
+      senhaHash,
+      emailVerificado: true,
+    });
 
     if (autoAprovado) {
       const usuario: UsuarioAutenticado = {
@@ -356,7 +479,7 @@ export class AuthService {
     const tokenHash = hashToken(token.trim());
     const senhaHash = await argon2.hash(novaSenha, { type: argon2.argon2id });
 
-    await this.db.transaction(async (tx) => {
+    const emailAtualizado = await this.db.transaction(async (tx) => {
       const [row] = await tx.query<{ id: number; usuario_id: number }>(
         `SELECT id, usuario_id
            FROM tokens_autenticacao
@@ -383,7 +506,16 @@ export class AuthService {
         'UPDATE tokens_autenticacao SET usado_em = NOW() WHERE id = ?',
         [row.id],
       );
+      const [u] = await tx.query<{ email: string }>(
+        'SELECT email FROM usuarios WHERE id = ?',
+        [row.usuario_id],
+      );
+      return u?.email ?? null;
     });
+
+    if (emailAtualizado) {
+      await this.authDb.atualizarSenha(emailAtualizado, senhaHash, false, true);
+    }
 
     return { mensagem: 'Senha redefinida com sucesso! Agora voce ja pode entrar.' };
   }
@@ -396,6 +528,7 @@ export class AuthService {
         WHERE id = ?`,
       [senhaHash, usuario.id],
     );
+    await this.authDb.atualizarSenha(usuario.email, senhaHash, false);
     return {
       mensagem: 'Nova senha cadastrada com sucesso!',
       usuario: { ...usuario, deveTrocarSenha: false },
@@ -458,6 +591,13 @@ export class AuthService {
         WHERE id = ?`,
       [tema, usuarioId],
     );
+    const [u] = await this.db.query<{ email: string }>(
+      'SELECT email FROM usuarios WHERE id = ?',
+      [usuarioId],
+    );
+    if (u?.email) {
+      await this.authDb.atualizarTema(u.email, tema);
+    }
     return { tema };
   }
 

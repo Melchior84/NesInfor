@@ -8,6 +8,7 @@ import {
 import * as argon2 from 'argon2';
 import { randomInt } from 'crypto';
 import { UsuarioAutenticado } from '../common/types/usuario-autenticado';
+import { AuthDbService } from '../database/auth-db.service';
 import { DatabaseService } from '../database/database.service';
 import { MailService } from '../mail/mail.service';
 import { AtualizarUsuarioDto } from './usuarios.dto';
@@ -29,6 +30,7 @@ export class UsuariosService {
 
   constructor(
     private readonly db: DatabaseService,
+    private readonly authDb: AuthDbService,
     private readonly mail: MailService,
   ) {}
 
@@ -209,6 +211,7 @@ export class UsuariosService {
         WHERE id = ?`,
       [hash, id],
     );
+    await this.authDb.atualizarSenha(alvo.email, hash, true, true);
 
     await this.mail.enviarSenhaZeradaPorAdmin(
       alvo.email,
