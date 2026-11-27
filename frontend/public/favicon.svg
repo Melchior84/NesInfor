@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#583619" />
+  <!-- Vapor do cafe -->
+  <path d="M23 19c0-3 2.5-4.5 2.5-7.5M32 18c0-3 2.5-4.5 2.5-7.5M41 19c0-3 2.5-4.5 2.5-7.5"
+        fill="none" stroke="#e2cdb3" stroke-width="2.6" stroke-linecap="round" />
+  <!-- Xicara -->
+  <path d="M16 26h26v14a11 11 0 0 1-11 11h-4a11 11 0 0 1-11-11V26z" fill="#faf6f1" />
+  <!-- Alca da xicara -->
+  <path d="M42 29h4a5.5 5.5 0 0 1 0 11h-4" fill="none" stroke="#faf6f1" stroke-width="4" stroke-linecap="round" />
+  <!-- Pires -->
+  <rect x="13" y="53" width="34" height="4" rx="2" fill="#e2cdb3" />
+</svg>
