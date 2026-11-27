@@ -43,13 +43,19 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
 
     if (url) {
       const parsed = new URL(url);
+      const authHost = parsed.hostname;
+      const authPort = Number(parsed.port || 3306);
+      const authDb = parsed.pathname.replace(/^\//, '') || 'railway';
+      this.logger.log(
+        `Configurando Banco de Contas compartilhado em ${authHost || '(vazio)'}:${authPort}/${authDb}`,
+      );
       this.habilitado = true;
       this.pool = createPool({
-        host: parsed.hostname,
-        port: Number(parsed.port || 3306),
+        host: authHost,
+        port: authPort,
         user: decodeURIComponent(parsed.username),
         password: decodeURIComponent(parsed.password),
-        database: parsed.pathname.replace(/^\//, '') || 'railway',
+        database: authDb,
         waitForConnections: true,
         connectionLimit: Number(config.get('AUTH_DB_POOL_SIZE', 5)),
         queueLimit: 0,
