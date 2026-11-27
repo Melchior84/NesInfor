@@ -54,7 +54,7 @@ export default function Layout() {
               {tema === 'escuro' ? '☀️ Claro' : '🌙 Escuro'}
             </button>
             <span className="text-stone-600">
-              {usuario?.nome}
+              {usuario?.nomeExibicao || usuario?.nome}
               {admin && (
                 <span className="ml-2 rounded bg-cafe-100 px-1.5 py-0.5 text-xs font-semibold text-cafe-700">
                   ADMIN

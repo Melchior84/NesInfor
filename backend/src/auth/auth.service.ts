@@ -20,6 +20,7 @@ import { DadosPagamentoDto, LoginDto, RegisterDto } from './auth.dto';
 interface UsuarioRow {
   id: number;
   nome: string;
+  nome_exibicao: string | null;
   email: string;
   senha_hash: string;
   perfil: 'ADMIN' | 'USUARIO';
@@ -60,7 +61,8 @@ export class AuthService {
 
   private async avisarAdminsCadastroPendente(nome: string, email: string) {
     const admins = await this.db.query<{ nome: string; email: string }>(
-      `SELECT nome, email FROM usuarios WHERE perfil = 'ADMIN' AND ativo = 1`,
+      `SELECT COALESCE(NULLIF(TRIM(nome_exibicao), ''), nome) AS nome, email
+         FROM usuarios WHERE perfil = 'ADMIN' AND ativo = 1`,
     );
     const envios = await Promise.allSettled(
       admins.map((a) =>
@@ -106,9 +108,9 @@ export class AuthService {
     let usuarioId: number;
     try {
       const res = await this.db.execute(
-        `INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, criado_em, atualizado_em)
-         VALUES (?, ?, ?, 'USUARIO', 1, 0, ?, 0, NOW(), NOW())`,
-        [nome, email, senhaHash, autoAprovado ? 1 : 0],
+        `INSERT INTO usuarios (nome, nome_exibicao, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, criado_em, atualizado_em)
+         VALUES (?, ?, ?, ?, 'USUARIO', 1, 0, ?, 0, NOW(), NOW())`,
+        [nome, nome, email, senhaHash, autoAprovado ? 1 : 0],
       );
       usuarioId = res.insertId;
     } catch (erro) {
@@ -120,6 +122,7 @@ export class AuthService {
 
     await this.authDb.criarOuSincronizarConta({
       nome,
+      nomeExibicao: nome,
       email,
       senhaHash,
       emailVerificado: false,
@@ -238,19 +241,22 @@ export class AuthService {
         }
 
         let [row] = await this.db.query<UsuarioRow>(
-          `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
+          `SELECT id, nome, nome_exibicao, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
              FROM usuarios WHERE email = ?`,
           [email],
         );
+
+        const nomeExibConta = conta.nome_exibicao?.trim() || conta.nome;
 
         // Usuario criou conta em outro site Studios Melk (ex.: Bolao) e entrou aqui pela 1a vez
         if (!row) {
           const autoAprovado = await this.dominioAutoAprovado(email);
           const res = await this.db.execute(
-            `INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema, criado_em, atualizado_em)
-             VALUES (?, ?, ?, 'USUARIO', 1, 1, ?, ?, ?, NOW(), NOW())`,
+            `INSERT INTO usuarios (nome, nome_exibicao, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema, criado_em, atualizado_em)
+             VALUES (?, ?, ?, ?, 'USUARIO', 1, 1, ?, ?, ?, NOW(), NOW())`,
             [
               conta.nome,
+              nomeExibConta,
               email,
               conta.senha_hash,
               autoAprovado ? 1 : 0,
@@ -259,13 +265,13 @@ export class AuthService {
             ],
           );
           if (!autoAprovado) {
-            await this.avisarAdminsCadastroPendente(conta.nome, email);
+            await this.avisarAdminsCadastroPendente(nomeExibConta, email);
             throw new ForbiddenException(
               'Sua conta Studios Melk foi vinculada ao Cafezinho Infor e aguarda aprovacao de um administrador.',
             );
           }
           [row] = await this.db.query<UsuarioRow>(
-            `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
+            `SELECT id, nome, nome_exibicao, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
                FROM usuarios WHERE id = ?`,
             [res.insertId],
           );
@@ -273,26 +279,29 @@ export class AuthService {
           if (!row.ativo) {
             throw new UnauthorizedException('Credenciais invalidas.');
           }
-          // Espelha eventual alteracao de senha/tema feita em outro site Studios Melk
+          // Espelha eventual alteracao de senha/tema/nome_exibicao feita em outro site Studios Melk
           if (
             row.senha_hash !== conta.senha_hash ||
             Boolean(row.deve_trocar_senha) !== Boolean(conta.deve_trocar_senha) ||
             !row.email_verificado ||
-            row.tema !== conta.tema
+            row.tema !== conta.tema ||
+            (row.nome_exibicao?.trim() || row.nome) !== nomeExibConta
           ) {
             await this.db.execute(
               `UPDATE usuarios
-                  SET senha_hash = ?, deve_trocar_senha = ?, email_verificado = 1, tema = ?, atualizado_em = NOW()
+                  SET senha_hash = ?, deve_trocar_senha = ?, email_verificado = 1, tema = ?, nome_exibicao = ?, atualizado_em = NOW()
                 WHERE id = ?`,
               [
                 conta.senha_hash,
                 conta.deve_trocar_senha ? 1 : 0,
                 conta.tema === 'escuro' ? 'escuro' : 'claro',
+                nomeExibConta,
                 row.id,
               ],
             );
             row.deve_trocar_senha = conta.deve_trocar_senha;
             row.tema = conta.tema;
+            row.nome_exibicao = nomeExibConta;
           }
           if (!row.aprovado) {
             throw new ForbiddenException(
@@ -304,6 +313,7 @@ export class AuthService {
         const usuario: UsuarioAutenticado = {
           id: row.id,
           nome: row.nome,
+          nomeExibicao: row.nome_exibicao?.trim() || row.nome,
           email: row.email,
           perfil: row.perfil,
           deveTrocarSenha: Boolean(row.deve_trocar_senha),
@@ -314,7 +324,7 @@ export class AuthService {
     }
 
     const [row] = await this.db.query<UsuarioRow>(
-      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
+      `SELECT id, nome, nome_exibicao, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
          FROM usuarios WHERE email = ?`,
       [email],
     );
@@ -338,6 +348,7 @@ export class AuthService {
     const usuario: UsuarioAutenticado = {
       id: row.id,
       nome: row.nome,
+      nomeExibicao: row.nome_exibicao?.trim() || row.nome,
       email: row.email,
       perfil: row.perfil,
       deveTrocarSenha: Boolean(row.deve_trocar_senha),
@@ -374,7 +385,7 @@ export class AuthService {
     const nome = (payload.name?.trim() || email.split('@')[0]).slice(0, 120);
 
     const [existente] = await this.db.query<UsuarioRow>(
-      `SELECT id, nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
+      `SELECT id, nome, nome_exibicao, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
          FROM usuarios WHERE email = ?`,
       [email],
     );
@@ -398,6 +409,7 @@ export class AuthService {
       const usuario: UsuarioAutenticado = {
         id: existente.id,
         nome: existente.nome,
+        nomeExibicao: existente.nome_exibicao?.trim() || existente.nome,
         email: existente.email,
         perfil: existente.perfil,
         deveTrocarSenha: Boolean(existente.deve_trocar_senha),
@@ -415,9 +427,9 @@ export class AuthService {
     let usuarioId: number;
     try {
       const res = await this.db.execute(
-        `INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, criado_em, atualizado_em)
-         VALUES (?, ?, ?, 'USUARIO', 1, 1, ?, 0, NOW(), NOW())`,
-        [nome, email, senhaHash, autoAprovado ? 1 : 0],
+        `INSERT INTO usuarios (nome, nome_exibicao, email, senha_hash, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, criado_em, atualizado_em)
+         VALUES (?, ?, ?, ?, 'USUARIO', 1, 1, ?, 0, NOW(), NOW())`,
+        [nome, nome, email, senhaHash, autoAprovado ? 1 : 0],
       );
       usuarioId = res.insertId;
     } catch (erro) {
@@ -431,6 +443,7 @@ export class AuthService {
 
     await this.authDb.criarOuSincronizarConta({
       nome,
+      nomeExibicao: nome,
       email,
       senhaHash,
       emailVerificado: true,
@@ -440,6 +453,7 @@ export class AuthService {
       const usuario: UsuarioAutenticado = {
         id: usuarioId,
         nome,
+        nomeExibicao: nome,
         email,
         perfil: 'USUARIO',
         deveTrocarSenha: false,
@@ -460,7 +474,8 @@ export class AuthService {
   async esqueciSenha(emailRaw: string) {
     const email = emailRaw.trim().toLowerCase();
     const [row] = await this.db.query<{ id: number; nome: string; ativo: number }>(
-      'SELECT id, nome, ativo FROM usuarios WHERE email = ?',
+      `SELECT id, COALESCE(NULLIF(TRIM(nome_exibicao), ''), nome) AS nome, ativo
+         FROM usuarios WHERE email = ?`,
       [email],
     );
 
@@ -599,6 +614,24 @@ export class AuthService {
       await this.authDb.atualizarTema(u.email, tema);
     }
     return { tema };
+  }
+
+  async salvarNomeExibicao(usuarioId: number, nomeExibicaoRaw: string) {
+    const nomeExibicao = nomeExibicaoRaw.trim();
+    await this.db.execute(
+      `UPDATE usuarios
+          SET nome_exibicao = ?, atualizado_em = NOW()
+        WHERE id = ?`,
+      [nomeExibicao, usuarioId],
+    );
+    const [u] = await this.db.query<{ email: string }>(
+      'SELECT email FROM usuarios WHERE id = ?',
+      [usuarioId],
+    );
+    if (u?.email) {
+      await this.authDb.atualizarNomeExibicao(u.email, nomeExibicao);
+    }
+    return { nomeExibicao };
   }
 
   private async criarToken(

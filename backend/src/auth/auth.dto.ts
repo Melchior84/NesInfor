@@ -103,3 +103,10 @@ export class TemaDto {
   @IsIn(['claro', 'escuro'])
   tema: 'claro' | 'escuro';
 }
+
+export class NomeExibicaoDto {
+  @IsString()
+  @MinLength(2, { message: 'O nome de exibicao deve ter ao menos 2 caracteres.' })
+  @MaxLength(120)
+  nomeExibicao: string;
+}

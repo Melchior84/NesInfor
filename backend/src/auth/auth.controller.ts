@@ -10,6 +10,7 @@ import {
   EmailDto,
   GoogleAuthDto,
   LoginDto,
+  NomeExibicaoDto,
   PreferenciasEmailDto,
   RedefinirSenhaDto,
   RegisterDto,
@@ -126,5 +127,13 @@ export class AuthController {
     @Body() dto: TemaDto,
   ) {
     return this.auth.salvarTema(usuario.id, dto.tema);
+  }
+
+  @Put('nome-exibicao')
+  salvarNomeExibicao(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() dto: NomeExibicaoDto,
+  ) {
+    return this.auth.salvarNomeExibicao(usuario.id, dto.nomeExibicao);
   }
 }

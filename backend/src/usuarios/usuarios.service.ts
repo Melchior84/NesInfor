@@ -38,6 +38,7 @@ export class UsuariosService {
     const rows = await this.db.query<{
       id: number;
       nome: string;
+      nomeExibicao: string | null;
       email: string;
       perfil: 'ADMIN' | 'USUARIO';
       ativo: number;
@@ -47,16 +48,18 @@ export class UsuariosService {
       receberEmailsCafe: number;
       criadoEm: Date;
     }>(
-      `SELECT id, nome, email, perfil, (ativo = 1) AS ativo,
+      `SELECT id, nome, COALESCE(NULLIF(TRIM(nome_exibicao), ''), nome) AS nomeExibicao,
+              email, perfil, (ativo = 1) AS ativo,
               (email_verificado = 1) AS emailVerificado,
               (aprovado = 1) AS aprovado,
               (deve_trocar_senha = 1) AS deveTrocarSenha,
               (receber_emails_cafe = 1) AS receberEmailsCafe,
               criado_em AS criadoEm
-         FROM usuarios ORDER BY aprovado ASC, nome ASC`,
+         FROM usuarios ORDER BY aprovado ASC, nomeExibicao ASC`,
     );
     return rows.map((u) => ({
       ...u,
+      nomeExibicao: u.nomeExibicao?.trim() || u.nome,
       ativo: Boolean(u.ativo),
       emailVerificado: Boolean(u.emailVerificado),
       aprovado: Boolean(u.aprovado),
@@ -197,7 +200,8 @@ export class UsuariosService {
     }
 
     const [alvo] = await this.db.query<{ id: number; nome: string; email: string }>(
-      'SELECT id, nome, email FROM usuarios WHERE id = ?',
+      `SELECT id, COALESCE(NULLIF(TRIM(nome_exibicao), ''), nome) AS nome, email
+         FROM usuarios WHERE id = ?`,
       [id],
     );
     if (!alvo) throw new NotFoundException('Usuario nao encontrado.');

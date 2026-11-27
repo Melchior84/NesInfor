@@ -163,7 +163,7 @@ export default function PainelOrganizador({ rodada, participantes, resumoCompra,
               <option value="">Sem organizador</option>
               {usuarios.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.nome}
+                  {u.nomeExibicao || u.nome}
                   {u.perfil === 'ADMIN' ? ' (ADMIN)' : ''}
                 </option>
               ))}

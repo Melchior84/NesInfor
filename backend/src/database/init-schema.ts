@@ -16,6 +16,7 @@ export async function garantirSchema(
     CREATE TABLE IF NOT EXISTS usuarios (
       id INT NOT NULL AUTO_INCREMENT,
       nome VARCHAR(120) NOT NULL,
+      nome_exibicao VARCHAR(120) NULL,
       email VARCHAR(180) NOT NULL,
       senha_hash VARCHAR(255) NOT NULL,
       perfil ENUM('ADMIN', 'USUARIO') NOT NULL DEFAULT 'USUARIO',
@@ -207,6 +208,15 @@ export async function garantirSchema(
       `ALTER TABLE usuarios ADD COLUMN tema ENUM('claro', 'escuro') NOT NULL DEFAULT 'claro' AFTER receber_emails_cafe`,
     );
     logger.log(`Coluna usuarios.tema adicionada (banco ${dbName}).`);
+  }
+  if (!usrExistentes.has('nome_exibicao')) {
+    await pool.query(
+      `ALTER TABLE usuarios ADD COLUMN nome_exibicao VARCHAR(120) NULL AFTER nome`,
+    );
+    await pool.query(
+      `UPDATE usuarios SET nome_exibicao = nome WHERE nome_exibicao IS NULL`,
+    );
+    logger.log(`Coluna usuarios.nome_exibicao adicionada (banco ${dbName}).`);
   }
 
   const [pixColRows] = await pool.execute(

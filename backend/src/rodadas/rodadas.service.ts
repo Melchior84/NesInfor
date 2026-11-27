@@ -37,9 +37,12 @@ const TRANSICOES: Record<StatusRodada, StatusRodada[]> = {
   CANCELADO: [],
 };
 
+const NOME_EXIB = (alias = 'u') =>
+  `COALESCE(NULLIF(TRIM(${alias}.nome_exibicao), ''), ${alias}.nome)`;
+
 const SELECT_RODADA = `
   SELECT r.id, r.titulo, r.organizador_id AS organizadorId,
-         u.nome AS organizadorNome, r.status,
+         ${NOME_EXIB('u')} AS organizadorNome, r.status,
          r.data_abertura AS dataAbertura, r.data_fechamento AS dataFechamento
     FROM rodadas_pedido r
     LEFT JOIN usuarios u ON u.id = r.organizador_id`;
@@ -147,12 +150,12 @@ export class RodadasService {
 
   private async notificarNovaRodada(rodada: Rodada) {
     const destinatarios = await this.db.query<{ nome: string; email: string }>(
-      `SELECT nome, email
-         FROM usuarios
-        WHERE ativo = 1
-          AND aprovado = 1
-          AND email_verificado = 1
-          AND receber_emails_cafe = 1
+      `SELECT ${NOME_EXIB('u')} AS nome, u.email
+         FROM usuarios u
+        WHERE u.ativo = 1
+          AND u.aprovado = 1
+          AND u.email_verificado = 1
+          AND u.receber_emails_cafe = 1
         ORDER BY nome`,
     );
 
@@ -301,9 +304,9 @@ export class RodadasService {
         conta: string | null;
         receberEmailsCafe: number;
       }>(
-        `SELECT id, nome, email, pix_chave AS pixChave, banco, agencia, conta,
-                  receber_emails_cafe AS receberEmailsCafe
-             FROM usuarios WHERE id = ?`,
+        `SELECT u.id, ${NOME_EXIB('u')} AS nome, u.email, u.pix_chave AS pixChave, u.banco, u.agencia, u.conta,
+                  u.receber_emails_cafe AS receberEmailsCafe
+             FROM usuarios u WHERE u.id = ?`,
         [organizadorId],
       )
       : [];
@@ -317,7 +320,7 @@ export class RodadasService {
       cafezinhosGorjeta: number;
       valorGorjeta: number;
     }>(
-      `SELECT u.id AS usuarioId, u.nome, u.email,
+      `SELECT u.id AS usuarioId, ${NOME_EXIB('u')} AS nome, u.email,
               u.receber_emails_cafe AS receberEmailsCafe,
               s.status_pagamento AS statusPagamento,
               s.cafezinhos_gorjeta AS cafezinhosGorjeta,
@@ -325,7 +328,7 @@ export class RodadasService {
          FROM solicitacoes s
          JOIN usuarios u ON u.id = s.usuario_id
         WHERE s.rodada_id = ?
-        ORDER BY u.nome`,
+        ORDER BY nome`,
       [rodada.id],
     );
 
@@ -467,7 +470,7 @@ export class RodadasService {
   ): Promise<ItemRodada[]> {
     return executor.query<ItemRodada>(
       `SELECT i.id AS itemId, s.id AS solicitacaoId, u.id AS usuarioId,
-              u.nome AS usuarioNome, c.id AS capsulaId, c.nome AS capsulaNome,
+              ${NOME_EXIB('u')} AS usuarioNome, c.id AS capsulaId, c.nome AS capsulaNome,
               c.tamanho_caixa AS tamanhoCaixa, i.quantidade,
               i.preco_unitario AS precoUnitario
          FROM itens_solicitacao i
@@ -538,11 +541,11 @@ export class RodadasService {
       cafezinhosGorjeta: number;
       valorGorjeta: number;
     }>(
-      `SELECT s.id AS solicitacaoId, u.id AS usuarioId, u.nome, u.email,
+      `SELECT s.id AS solicitacaoId, u.id AS usuarioId, ${NOME_EXIB('u')} AS nome, u.email,
               s.status_pagamento AS statusPagamento, s.data_pagamento AS dataPagamento,
               s.cafezinhos_gorjeta AS cafezinhosGorjeta, s.valor_gorjeta AS valorGorjeta
          FROM solicitacoes s JOIN usuarios u ON u.id = s.usuario_id
-        WHERE s.rodada_id = ? ORDER BY u.nome`,
+        WHERE s.rodada_id = ? ORDER BY nome`,
       [id],
     );
     const totais = new Map(participantes.map((p) => [p.usuarioId, p]));
@@ -604,7 +607,7 @@ export class RodadasService {
       nome: string;
       cafezinhos: number;
     }>(
-      `SELECT r.id AS rodadaId, s.usuario_id AS usuarioId, u.nome,
+      `SELECT r.id AS rodadaId, s.usuario_id AS usuarioId, ${NOME_EXIB('u')} AS nome,
               s.cafezinhos_gorjeta AS cafezinhos
          FROM solicitacoes s
          JOIN rodadas_pedido r ON r.id = s.rodada_id
@@ -940,7 +943,7 @@ export class RodadasService {
       nome: string;
       criadoEm: Date;
     }>(
-      `SELECT s.usuario_id AS usuarioId, u.nome, s.criado_em AS criadoEm
+      `SELECT s.usuario_id AS usuarioId, ${NOME_EXIB('u')} AS nome, s.criado_em AS criadoEm
          FROM solicitacoes_abertura_rodada s
          JOIN usuarios u ON u.id = s.usuario_id
         ORDER BY s.criado_em ASC`,

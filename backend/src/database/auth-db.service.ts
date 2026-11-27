@@ -11,6 +11,7 @@ import { DatabaseService } from './database.service';
 export interface ContaCompartilhada {
   id: number;
   nome: string;
+  nome_exibicao: string | null;
   email: string;
   senha_hash: string;
   ativo: number;
@@ -108,6 +109,7 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
       CREATE TABLE IF NOT EXISTS contas (
         id INT NOT NULL AUTO_INCREMENT,
         nome VARCHAR(120) NOT NULL,
+        nome_exibicao VARCHAR(120) NULL,
         email VARCHAR(180) NOT NULL,
         senha_hash VARCHAR(255) NOT NULL,
         ativo TINYINT(1) NOT NULL DEFAULT 1,
@@ -120,6 +122,22 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
         UNIQUE KEY uq_contas_email (email)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    const [cols] = await this.pool.execute(
+      `SELECT COLUMN_NAME AS nome
+         FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contas'`,
+    );
+    const existentes = new Set((cols as { nome: string }[]).map((c) => c.nome));
+    if (!existentes.has('nome_exibicao')) {
+      await this.pool.query(
+        `ALTER TABLE contas ADD COLUMN nome_exibicao VARCHAR(120) NULL AFTER nome`,
+      );
+      await this.pool.query(
+        `UPDATE contas SET nome_exibicao = nome WHERE nome_exibicao IS NULL`,
+      );
+      this.logger.log('Coluna contas.nome_exibicao adicionada no Banco de Contas.');
+    }
   }
 
   /**
@@ -130,6 +148,7 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
     if (!this.pool) return;
     const locais = await this.localDb.query<{
       nome: string;
+      nome_exibicao: string | null;
       email: string;
       senha_hash: string;
       ativo: number;
@@ -138,7 +157,7 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
       tema: 'claro' | 'escuro' | null;
       criado_em: Date;
     }>(
-      `SELECT nome, email, senha_hash, ativo, email_verificado,
+      `SELECT nome, nome_exibicao, email, senha_hash, ativo, email_verificado,
               deve_trocar_senha, tema, criado_em
          FROM usuarios`,
     );
@@ -147,10 +166,11 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
     for (const u of locais) {
       const [res] = await this.pool.execute(
         `INSERT IGNORE INTO contas
-          (nome, email, senha_hash, ativo, email_verificado, deve_trocar_senha, tema, criado_em, atualizado_em)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          (nome, nome_exibicao, email, senha_hash, ativo, email_verificado, deve_trocar_senha, tema, criado_em, atualizado_em)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           u.nome,
+          u.nome_exibicao?.trim() || u.nome,
           u.email.trim().toLowerCase(),
           u.senha_hash,
           u.ativo ? 1 : 0,
@@ -172,7 +192,7 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
   async buscarPorEmail(email: string): Promise<ContaCompartilhada | null> {
     if (!this.pool) return null;
     const [rows] = await this.pool.execute(
-      `SELECT id, nome, email, senha_hash, ativo, email_verificado, deve_trocar_senha, tema
+      `SELECT id, nome, nome_exibicao, email, senha_hash, ativo, email_verificado, deve_trocar_senha, tema
          FROM contas WHERE email = ?`,
       [email.trim().toLowerCase()],
     );
@@ -182,23 +202,38 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
 
   async criarOuSincronizarConta(dados: {
     nome: string;
+    nomeExibicao?: string;
     email: string;
     senhaHash: string;
     emailVerificado: boolean;
     tema?: 'claro' | 'escuro';
   }): Promise<void> {
     if (!this.pool) return;
+    const nome = dados.nome.trim();
+    const nomeExibicao = dados.nomeExibicao?.trim() || nome;
     await this.pool.execute(
       `INSERT IGNORE INTO contas
-        (nome, email, senha_hash, ativo, email_verificado, deve_trocar_senha, tema, criado_em, atualizado_em)
-       VALUES (?, ?, ?, 1, ?, 0, ?, NOW(), NOW())`,
+        (nome, nome_exibicao, email, senha_hash, ativo, email_verificado, deve_trocar_senha, tema, criado_em, atualizado_em)
+       VALUES (?, ?, ?, ?, 1, ?, 0, ?, NOW(), NOW())`,
       [
-        dados.nome.trim(),
+        nome,
+        nomeExibicao,
         dados.email.trim().toLowerCase(),
         dados.senhaHash,
         dados.emailVerificado ? 1 : 0,
         dados.tema === 'escuro' ? 'escuro' : 'claro',
       ],
+    );
+  }
+
+  async atualizarNomeExibicao(
+    email: string,
+    nomeExibicao: string,
+  ): Promise<void> {
+    if (!this.pool) return;
+    await this.pool.execute(
+      `UPDATE contas SET nome_exibicao = ?, atualizado_em = NOW() WHERE email = ?`,
+      [nomeExibicao.trim(), email.trim().toLowerCase()],
     );
   }
 

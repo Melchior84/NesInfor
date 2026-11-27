@@ -79,11 +79,11 @@ export default function NovaRodadaForm({ onCriada }: { onCriada: (r: Rodada) => 
           >
             <option value="">Deixar em aberto (qualquer pessoa pode assumir)</option>
             {usuarios.length === 0 && usuario && (
-              <option value={usuario.id}>{usuario.nome} (você)</option>
+              <option value={usuario.id}>{usuario.nomeExibicao || usuario.nome} (você)</option>
             )}
             {usuarios.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.nome}
+                {u.nomeExibicao || u.nome}
                 {u.id === usuario?.id ? ' (você)' : ''}
                 {u.perfil === 'ADMIN' ? ' · ADMIN' : ''}
               </option>

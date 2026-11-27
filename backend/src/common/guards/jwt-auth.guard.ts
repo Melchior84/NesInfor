@@ -47,6 +47,7 @@ export class JwtAuthGuard implements CanActivate {
     const [usuario] = await this.db.query<{
       id: number;
       nome: string;
+      nome_exibicao: string | null;
       email: string;
       perfil: 'ADMIN' | 'USUARIO';
       ativo: number;
@@ -55,7 +56,7 @@ export class JwtAuthGuard implements CanActivate {
       deve_trocar_senha: number;
       tema: 'claro' | 'escuro' | null;
     }>(
-      `SELECT id, nome, email, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
+      `SELECT id, nome, nome_exibicao, email, perfil, ativo, email_verificado, aprovado, deve_trocar_senha, tema
          FROM usuarios WHERE id = ?`,
       [payload.sub],
     );
@@ -87,6 +88,7 @@ export class JwtAuthGuard implements CanActivate {
     req.user = {
       id: usuario.id,
       nome: usuario.nome,
+      nomeExibicao: usuario.nome_exibicao?.trim() || usuario.nome,
       email: usuario.email,
       perfil: usuario.perfil,
       deveTrocarSenha,

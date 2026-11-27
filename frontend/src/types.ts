@@ -7,6 +7,7 @@ export type StatusSabor = 'FECHADA' | 'COM_SOBRA' | 'AGUARDANDO_COMPLETAR';
 export interface Usuario {
   id: number;
   nome: string;
+  nomeExibicao: string;
   email: string;
   perfil: Perfil;
   deveTrocarSenha: boolean;

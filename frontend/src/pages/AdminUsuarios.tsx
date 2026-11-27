@@ -193,7 +193,7 @@ export default function AdminUsuarios() {
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-stone-500">
               <tr>
-                <th className="py-2">Nome</th>
+                <th className="py-2">Nome de exibição / Cadastro</th>
                 <th>E-mail</th>
                 <th>Perfil</th>
                 <th>Situação</th>
@@ -203,11 +203,18 @@ export default function AdminUsuarios() {
             <tbody className="divide-y divide-stone-100">
               {aprovados.map((u) => {
                 const eu = u.id === usuario?.id;
+                const nomeExib = u.nomeExibicao || u.nome;
+                const diferente = nomeExib.trim().toLowerCase() !== u.nome.trim().toLowerCase();
                 return (
                   <tr key={u.id} className={u.ativo ? '' : 'text-stone-400'}>
-                    <td className="py-2 font-medium">
-                      {u.nome}
-                      {eu && ' (você)'}
+                    <td className="py-2">
+                      <div className="font-medium">
+                        {nomeExib}
+                        {eu && ' (você)'}
+                      </div>
+                      {diferente && (
+                        <div className="text-xs text-stone-500">Cadastro: {u.nome}</div>
+                      )}
                     </td>
                     <td>
                       <div>{u.email}</div>

@@ -16,7 +16,7 @@ function perfilIntensidade(media: number): string {
 }
 
 export default function PainelUsuario() {
-  const { usuario } = useAuth();
+  const { usuario, atualizarUsuario } = useAuth();
   const toast = useToast();
   const [ano, setAno] = useState<number>(new Date().getFullYear());
   const [dados, setDados] = useState<MeuPainel | null>(null);
@@ -24,6 +24,32 @@ export default function PainelUsuario() {
   const [salvandoPref, setSalvandoPref] = useState(false);
   const [mostrarPrefs, setMostrarPrefs] = useState(false);
   const [ocupadoSolicitacao, setOcupadoSolicitacao] = useState(false);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [nomeExibicaoInput, setNomeExibicaoInput] = useState(
+    usuario?.nomeExibicao || usuario?.nome || '',
+  );
+  const [salvandoNome, setSalvandoNome] = useState(false);
+
+  async function salvarNomeExibicao(e: React.FormEvent) {
+    e.preventDefault();
+    if (!usuario) return;
+    const limpo = nomeExibicaoInput.trim();
+    if (limpo.length < 2) {
+      toast.erro('Informe pelo menos 2 caracteres para o nome de exibição.');
+      return;
+    }
+    setSalvandoNome(true);
+    try {
+      const r = await api.salvarNomeExibicao(limpo);
+      atualizarUsuario({ ...usuario, nomeExibicao: r.nomeExibicao });
+      setEditandoNome(false);
+      toast.ok('Nome de exibição atualizado!');
+    } catch (err) {
+      toast.erro(err);
+    } finally {
+      setSalvandoNome(false);
+    }
+  }
 
   async function alternarEmails(marcado: boolean) {
     if (!dados) return;
@@ -89,7 +115,7 @@ export default function PainelUsuario() {
 
   const isAdmin = usuario?.perfil === 'ADMIN';
 
-  const primeiroNome = usuario?.nome?.split(' ')[0] ?? 'Cafezeiro';
+  const nomeExibicaoAtual = usuario?.nomeExibicao || usuario?.nome || 'Cafezeiro';
   const pctVariedade =
     dados && dados.variedade.totalSaboresAtivos > 0
       ? Math.round((dados.variedade.saboresProvados / dados.variedade.totalSaboresAtivos) * 100)
@@ -102,7 +128,17 @@ export default function PainelUsuario() {
         <div>
           <h1 className="text-2xl font-bold text-cafe-700">Meu Painel</h1>
           <p className="text-sm text-stone-500">
-            Olá, <strong>{primeiroNome}</strong>! Confira seu resumo no Cafezinho Infor em {ano}.
+            Olá, <strong>{nomeExibicaoAtual}</strong>!{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setNomeExibicaoInput(nomeExibicaoAtual);
+                setEditandoNome((v) => !v);
+              }}
+              className="ml-1 text-xs font-medium text-cafe-600 hover:underline"
+            >
+              ✏️ Alterar nome de exibição
+            </button>
           </p>
         </div>
 
@@ -145,6 +181,47 @@ export default function PainelUsuario() {
         <p className="text-stone-500">Carregando seu painel…</p>
       ) : (
         <>
+          {/* Edição discreta do Nome de exibição */}
+          {editandoNome && (
+            <form
+              onSubmit={(e) => void salvarNomeExibicao(e)}
+              className="rounded-xl border border-stone-200 bg-stone-50/80 p-3.5 space-y-2"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-xs font-semibold text-stone-700" htmlFor="nome-exibicao-input">
+                  Nome de exibição (como você aparece no site, ranking e e-mails)
+                </label>
+                {usuario && (
+                  <span className="text-[11px] text-stone-400">
+                    Nome de cadastro: {usuario.nome}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  id="nome-exibicao-input"
+                  required
+                  minLength={2}
+                  maxLength={120}
+                  className="input flex-1 text-sm"
+                  value={nomeExibicaoInput}
+                  onChange={(e) => setNomeExibicaoInput(e.target.value)}
+                />
+                <button type="submit" className="btn-primary btn-sm" disabled={salvandoNome}>
+                  {salvandoNome ? 'Salvando…' : 'Salvar'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  disabled={salvandoNome}
+                  onClick={() => setEditandoNome(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
+
           {/* Preferência de e-mails (expansível sob demanda) */}
           {mostrarPrefs && (
             <section className="rounded-xl border border-stone-200 bg-stone-50/80 p-3.5 text-sm">

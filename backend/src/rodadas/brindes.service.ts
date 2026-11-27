@@ -48,9 +48,9 @@ export class BrindesService {
     const [row] = await this.db.query<RodadaSorteioRow>(
       `SELECT r.id,
               r.organizador_id AS organizadorId,
-              uo.nome AS organizadorNome,
+              COALESCE(NULLIF(TRIM(uo.nome_exibicao), ''), uo.nome) AS organizadorNome,
               r.sorteador_id AS sorteadorId,
-              us.nome AS sorteadorNome,
+              COALESCE(NULLIF(TRIM(us.nome_exibicao), ''), us.nome) AS sorteadorNome,
               r.status
          FROM rodadas_pedido r
          LEFT JOIN usuarios uo ON uo.id = r.organizador_id
@@ -89,8 +89,10 @@ export class BrindesService {
 
     const brindesRows = await this.db.query<BrindeRow>(
       `SELECT b.id, b.rodada_id AS rodadaId, b.nome, b.descricao,
-              b.vencedor_id AS vencedorId, uv.nome AS vencedorNome,
-              b.sorteado_por AS sorteadoPorId, us.nome AS sorteadoPorNome,
+              b.vencedor_id AS vencedorId,
+              COALESCE(NULLIF(TRIM(uv.nome_exibicao), ''), uv.nome) AS vencedorNome,
+              b.sorteado_por AS sorteadoPorId,
+              COALESCE(NULLIF(TRIM(us.nome_exibicao), ''), us.nome) AS sorteadoPorNome,
               b.sorteado_em AS sorteadoEm,
               b.seed_publica AS seedPublica,
               b.hash_auditoria AS hashAuditoria,

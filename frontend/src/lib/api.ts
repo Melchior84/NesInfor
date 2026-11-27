@@ -112,6 +112,8 @@ export const api = {
   salvarPreferenciasEmail: (receberEmailsCafe: boolean) =>
     put<{ receberEmailsCafe: boolean }>('/auth/preferencias-email', { receberEmailsCafe }),
   salvarTema: (tema: Tema) => put<{ tema: Tema }>('/auth/tema', { tema }),
+  salvarNomeExibicao: (nomeExibicao: string) =>
+    put<{ nomeExibicao: string }>('/auth/nome-exibicao', { nomeExibicao }),
 
   // cápsulas
   capsulasPublico: () => get<CapsulaPublica[]>('/capsulas/publico'),

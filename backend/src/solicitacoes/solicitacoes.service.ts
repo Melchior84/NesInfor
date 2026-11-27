@@ -72,7 +72,8 @@ export class SolicitacoesService {
             agencia: string | null;
             conta: string | null;
           }>(
-            `SELECT nome, pix_chave AS pixChave, banco, agencia, conta
+            `SELECT COALESCE(NULLIF(TRIM(nome_exibicao), ''), nome) AS nome,
+                    pix_chave AS pixChave, banco, agencia, conta
                FROM usuarios WHERE id = ?`,
             [rodada.organizadorId],
           )
