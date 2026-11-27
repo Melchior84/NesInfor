@@ -42,9 +42,14 @@ export class AuthDbService implements OnModuleInit, OnModuleDestroy {
     const host = config.get<string>('AUTH_DB_HOST')?.trim();
 
     if (url) {
+      const parsed = new URL(url);
       this.habilitado = true;
       this.pool = createPool({
-        uri: url,
+        host: parsed.hostname,
+        port: Number(parsed.port || 3306),
+        user: decodeURIComponent(parsed.username),
+        password: decodeURIComponent(parsed.password),
+        database: parsed.pathname.replace(/^\//, '') || 'railway',
         waitForConnections: true,
         connectionLimit: Number(config.get('AUTH_DB_POOL_SIZE', 5)),
         queueLimit: 0,
