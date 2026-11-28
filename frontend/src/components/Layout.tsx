@@ -33,8 +33,17 @@ export default function Layout() {
                 <NavLink to="/admin/capsulas" className={link}>
                   Cápsulas
                 </NavLink>
-                <NavLink to="/admin/usuarios" className={link}>
-                  Usuários
+                <NavLink
+                  to="/admin/usuarios"
+                  className={({ isActive }) =>
+                    `rounded-lg px-3 py-1.5 text-sm font-medium ${
+                      isActive
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'text-stone-600 hover:bg-stone-100'
+                    }`
+                  }
+                >
+                  🛡️ Admin
                 </NavLink>
               </>
             )}
